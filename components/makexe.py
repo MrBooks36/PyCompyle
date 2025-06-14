@@ -1,9 +1,8 @@
-import os, shutil
-import logging
+import os, shutil, logging
 from logging import info
-try: from components import zip_embeder
-except: import zip_embeder 
 from sys import argv
+try: from components import zip_embeder
+except: import zip_embeder
 
 def setup_logging():
     """Set up logging configuration."""
@@ -42,6 +41,7 @@ def main(folder_path, no_console, source_file_name, keepfiles):
     folder_name = os.path.basename(folder_path).replace('.build','')
     info('Removing __pycache__')
     delete_pycache(folder_path)
+    delete_pycache(os.getcwd())
     info('Giving args')
     with open(os.path.join(folder_path, 'thefilename'), 'w') as file:
         file.write(source_file_name)

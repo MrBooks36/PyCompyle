@@ -1,9 +1,9 @@
 @echo off
 del EXEs\bootloader.exe
 del EXEs\bootloaderw.exe
-pyinstaller --onefile components\bootloader.py
+pyinstaller --onefile -i "NONE" components\bootloader.py 
 move dist\bootloader.exe EXEs\bootloader.exe
-pyinstaller --onefile --windowed components\bootloader.py
+pyinstaller --onefile --windowed -i "NONE" components\bootloader.py
 move dist\bootloader.exe EXEs\bootloaderw.exe
 del bootloader.spec
 rmdir /q /s build
