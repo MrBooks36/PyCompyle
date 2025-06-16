@@ -126,7 +126,9 @@ def main():
     parser = argparse.ArgumentParser(description="Package a Python script with its dependencies.")
     parser.add_argument('source_file', help='The Python script to package.')
     parser.add_argument('-nc', '--noconfirm', action='store_true', help='Skip confirmation for wrapping the exe', default=False)
-    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output.')
+    parser.add_argument('-i', '--icon', help='Icon for the created EXE (Curently relies on PyInstaller)', default=False)
+    parser.add_argument('-p', '--package', help='Icon for the created EXE (Curently relies on PyInstaller)', default=False)
+    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output.', default=False)
     parser.add_argument('-w', '--windowed', action='store_true', help='Disable console', default=False)
     parser.add_argument('-k', '--keepfiles', action='store_true', help='Keep the build files', default=False)
     args = parser.parse_args()
@@ -135,6 +137,7 @@ def main():
 
     source_file_path = os.path.abspath(args.source_file)
     logging.info(f"Source file: {source_file_path}")
+    os.chdir(os.path.dirname(source_file_path))
 
     folder_path = setup_destination_folder(args.source_file)
     copy_python_executable(folder_path)
@@ -151,7 +154,7 @@ def main():
     logging.info(f"Packaging complete: {folder_path}")
     if not args.noconfirm:
         getpass('Press Enter to continue wrapping the EXE')
-    makexe.main(folder_path, args.windowed, os.path.basename(source_file_path), args.keepfiles)
+    makexe.main(folder_path, args.windowed, os.path.basename(source_file_path), args.keepfiles, args.icon)
 
 if __name__ == "__main__":
     main()
