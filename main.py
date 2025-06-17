@@ -1,12 +1,4 @@
-import os
-import sys
-import platform
-import shutil
-import subprocess
-import ast
-import importlib.util
-import logging
-import argparse
+import os, sys, platform, shutil, subprocess, ast, importlib.util, logging, argparse
 from components import getimports, makexe
 from getpass import getpass
 
@@ -14,11 +6,8 @@ def setup_logging(verbose=False):
     log_level = logging.DEBUG if verbose else logging.INFO
     logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
 
-def is_windows():
-    return platform.system() == 'Windows'
-
 def validate_platform():
-    if not is_windows():
+    if not platform.system() == 'Windows':
         print("This script is designed to run only on Windows.")
         sys.exit(1)
 
@@ -54,7 +43,7 @@ def copy_python_executable(folder_path):
         for dll in find_dlls_with_phrase(python_dir, dll_phrase):
             shutil.copy(dll, folder_path)
 
-def process_imports(source_file_path):
+def process_imports(source_file_path, packages, keepfile):
     source_dir = os.path.dirname(source_file_path)
     if source_dir not in sys.path:
         sys.path.insert(0, source_dir)
@@ -70,7 +59,9 @@ def process_imports(source_file_path):
             os.remove(tmp_path)
 
     with open(tmp_script_path, 'w') as tmp_file:
-        tmp_file.write('\n'.join(f'import {imp}' for imp in imports))
+        tmp_file.write('\n'.join(f'try:\n import {imp}\nexcept: pass\n' for imp in imports))
+        for package in packages:
+            tmp_file.write(f'try:\n import {package}\nexcept: pass\n')
         tmp_file.write('\nimport sys')
         tmp_file.write(f"\nwith open(r'{tmp_output_path}', 'w') as out_file:")
         tmp_file.write('\n    out_file.write(str([m.__name__ for m in sys.modules.values() if m]))')
@@ -81,12 +72,13 @@ def process_imports(source_file_path):
         subprocess.run([sys.executable, tmp_script_path], check=True)
     finally:
         os.chdir(original_dir)
-
-    os.remove(tmp_script_path)
+    if not keepfile:
+     os.remove(tmp_script_path)
 
     with open(tmp_output_path, "r") as out_file:
         output = out_file.read().strip()
-    os.remove(tmp_output_path)
+    if not keepfile:
+     os.remove(tmp_output_path)
 
     logging.debug(f"Output read from tmp file: {output}")
 
@@ -126,11 +118,12 @@ def main():
     parser = argparse.ArgumentParser(description="Package a Python script with its dependencies.")
     parser.add_argument('source_file', help='The Python script to package.')
     parser.add_argument('-nc', '--noconfirm', action='store_true', help='Skip confirmation for wrapping the exe', default=False)
-    parser.add_argument('-i', '--icon', help='Icon for the created EXE (Curently relies on PyInstaller)', default=False)
-    parser.add_argument('-p', '--package', help='Icon for the created EXE (Curently relies on PyInstaller)', default=False)
+    parser.add_argument('-i', '--icon', help='Icon for the created EXE', default=False)
+    parser.add_argument('-p', '--package', action='append', help='Include a package that might have been missed (CAPS matter)', default=[])
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output.', default=False)
     parser.add_argument('-w', '--windowed', action='store_true', help='Disable console', default=False)
     parser.add_argument('-k', '--keepfiles', action='store_true', help='Keep the build files', default=False)
+    parser.add_argument('-r', '--raw', action='store_true', help="Don't check for imports (good for built-in and no imports)", default=False)
     args = parser.parse_args()
 
     setup_logging(args.verbose)
@@ -141,11 +134,11 @@ def main():
 
     folder_path = setup_destination_folder(args.source_file)
     copy_python_executable(folder_path)
-
-    cleaned_modules = process_imports(source_file_path)
-    lib_path = os.path.join(folder_path, 'lib')
-    os.makedirs(lib_path, exist_ok=True)
-    copy_dependencies(cleaned_modules, lib_path, folder_path)
+    if not args.raw:
+     cleaned_modules = process_imports(source_file_path, args.package, args.keepfiles)
+     lib_path = os.path.join(folder_path, 'lib')
+     os.makedirs(lib_path, exist_ok=True)
+     copy_dependencies(cleaned_modules, lib_path, folder_path)
 
     destination_file_path = os.path.join(folder_path, os.path.basename(source_file_path))
     shutil.copyfile(source_file_path, destination_file_path)

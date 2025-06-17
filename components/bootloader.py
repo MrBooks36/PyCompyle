@@ -60,11 +60,13 @@ def run_exe():
     
     # Forward all extra args passed to the current script
     args = argv[1:]  # skip current script name
+    run('cls', shell=True)
     run([python, '-B', script_path] + args, shell=True)
     try: rmtree(output_dir)
     except: pass
 
 def main():
+    print('Loading...')
     extract_embedded_zip()
     run_exe()
 

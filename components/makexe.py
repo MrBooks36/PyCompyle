@@ -1,4 +1,4 @@
-import os, shutil, logging, zipfile
+import os, shutil, logging, zipfile, requests
 from logging import info
 from sys import argv
 from tqdm import tqdm
@@ -59,16 +59,38 @@ def create_exe(name, zip_path, no_console):
     if no_console: zip_embeder.main(name, os.path.join(exe_folder, 'bootloaderw.exe'), zip_path)
     else: zip_embeder.main(name, os.path.join(exe_folder, 'bootloader.exe'), zip_path)
 
-def add_icon(name, icon):
-    raise Exception('this is not working yet')
-    import warnings
-    warnings.warn('Adding icons curently relies on PyInstaller')
-    try:
-     from PyInstaller.utils.win32.icon import CopyIcons_FromIco
-    except ImportError:
-        logging.error("Cannot import PyInstaller. If you don't have it installed install it with 'python.exe -m pip install PyInstaller'")  
+def download_and_extract_zip(url, extract_to='resource_hacker'):
+    # Ensure the directory exists
+    if not os.path.exists(extract_to):
+        os.makedirs(extract_to)
 
-    CopyIcons_FromIco(f'{name}.exe', [icon])
+    # Download the file
+    zip_filename = os.path.join(extract_to, 'resource_hacker.zip')
+    response = requests.get(url)
+    
+    with open(zip_filename, 'wb') as file:
+        file.write(response.content)
+
+    # Extract the ZIP file
+    with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
+        zip_ref.extractall(extract_to)
+
+    # Clean up
+    os.remove(zip_filename)
+    print(f"Files extracted to: {extract_to}")    
+
+def add_icon(name, icon):
+    cache_path = os.path.expandvars('%LOCALAPPDATA%\\PyPackager.cache')
+    if not os.path.exists(cache_path): os.makedirs(cache_path)
+    info(f'Cache path: {cache_path}')
+    if not os.path.exists(os.path.join(cache_path, 'resource_hacker')): 
+        info('Downloading ResourceHacker: https://www.angusj.com/resourcehacker/resource_hacker.zip')
+        download_and_extract_zip('https://www.angusj.com/resourcehacker/resource_hacker.zip')
+
+    r_hacker_path =  os.path.join(cache_path, 'resource_hacker', 'ResourceHacker.exe')
+
+    os.system(f'{r_hacker_path} -open {name}.exe -save {name}.exe -action add -res {icon} -mask ICONGROUP,MAINICON,')
+
 
 
 def main(folder_path, no_console, source_file_name, keepfiles, icon):
@@ -96,3 +118,7 @@ def main(folder_path, no_console, source_file_name, keepfiles, icon):
         info('Cleaning up')
         shutil.rmtree(folder_path)
         os.remove(zip_path)
+
+if __name__ == '__main__':
+    setup_logging()
+    add_icon('test', r"C:\Users\ofk20\Documents\GitHub\talon\media\ICON.ico")
