@@ -1,4 +1,4 @@
-import os, sys, platform, shutil, subprocess, ast, importlib.util, logging, argparse
+import os, sys, platform, shutil, subprocess, ast, importlib.util, logging, argparse, fnmatch
 from components import getimports, makexe
 from getpass import getpass
 
@@ -18,9 +18,7 @@ def find_dlls_with_phrase(directory, phrase):
     ]
 
 def setup_destination_folder(source_file):
-    # Always use the default destination folder based on source file name
     destination_folder = os.path.abspath(os.path.splitext(source_file)[0] + '.build')
-
     if os.path.exists(destination_folder):
         shutil.rmtree(destination_folder)
     os.makedirs(destination_folder)
@@ -73,12 +71,12 @@ def process_imports(source_file_path, packages, keepfile):
     finally:
         os.chdir(original_dir)
     if not keepfile:
-     os.remove(tmp_script_path)
+        os.remove(tmp_script_path)
 
     with open(tmp_output_path, "r") as out_file:
         output = out_file.read().strip()
     if not keepfile:
-     os.remove(tmp_output_path)
+        os.remove(tmp_output_path)
 
     logging.debug(f"Output read from tmp file: {output}")
 
@@ -97,7 +95,6 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path):
     for module_name in cleaned_modules:
         if module_name == '__main__':
             continue
-
         spec = importlib.util.find_spec(module_name)
         if spec and spec.origin and 'built-in' not in spec.origin and 'frozen' not in spec.origin:
             path = spec.origin.replace(r'\__init__.py', '')
@@ -112,6 +109,29 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path):
             except Exception as e:
                 logging.error(f"Error copying {path}: {e}")
 
+def should_exclude(name, patterns):
+    for pattern in patterns:
+        if fnmatch.fnmatch(name, pattern):
+            return True
+    return False
+
+def copy_folder_with_excludes(src, dst, exclude_patterns):
+    os.makedirs(dst, exist_ok=True)
+    for root, dirs, files in os.walk(src):
+        rel_path = os.path.relpath(root, src)
+        dest_root = os.path.join(dst, rel_path) if rel_path != '.' else dst
+
+        # Filter directories
+        dirs[:] = [d for d in dirs if not should_exclude(d, exclude_patterns)]
+
+        for file in files:
+            if should_exclude(file, exclude_patterns):
+                continue
+            src_file = os.path.join(root, file)
+            dst_file = os.path.join(dest_root, file)
+            os.makedirs(os.path.dirname(dst_file), exist_ok=True)
+            shutil.copy2(src_file, dst_file)
+
 def main():
     validate_platform()
 
@@ -124,8 +144,10 @@ def main():
     parser.add_argument('-w', '--windowed', action='store_true', help='Disable console', default=False)
     parser.add_argument('-k', '--keepfiles', action='store_true', help='Keep the build files', default=False)
     parser.add_argument('-r', '--raw', action='store_true', help="Don't check for imports (good for built-in and no imports)", default=False)
-    args = parser.parse_args()
+    parser.add_argument('-cf', '--copyfolder', action='append', help='Path(s) to folder(s) to copy into the build directory. Can be used multiple times.', default=[])
+    parser.add_argument('-e', '--exclude', action='append', help='Glob pattern(s) to exclude when copying folders (e.g. __pycache__, *.log)', default=[])
 
+    args = parser.parse_args()
     setup_logging(args.verbose)
 
     source_file_path = os.path.abspath(args.source_file)
@@ -134,11 +156,24 @@ def main():
 
     folder_path = setup_destination_folder(args.source_file)
     copy_python_executable(folder_path)
+
+    # Copy additional folders with exclusions
+    for folder in args.copyfolder:
+        if os.path.isdir(folder):
+            dest_path = os.path.join(folder_path, os.path.basename(folder))
+            try:
+                copy_folder_with_excludes(folder, dest_path, args.exclude)
+                logging.info(f"Copied folder '{folder}' to '{dest_path}' with exclusions {args.exclude}")
+            except Exception as e:
+                logging.error(f"Failed to copy folder '{folder}': {e}")
+        else:
+            logging.error(f"The specified path for --copyfolder is not a directory: {folder}")
+
     if not args.raw:
-     cleaned_modules = process_imports(source_file_path, args.package, args.keepfiles)
-     lib_path = os.path.join(folder_path, 'lib')
-     os.makedirs(lib_path, exist_ok=True)
-     copy_dependencies(cleaned_modules, lib_path, folder_path)
+        cleaned_modules = process_imports(source_file_path, args.package, args.keepfiles)
+        lib_path = os.path.join(folder_path, 'lib')
+        os.makedirs(lib_path, exist_ok=True)
+        copy_dependencies(cleaned_modules, lib_path, folder_path)
 
     destination_file_path = os.path.join(folder_path, os.path.basename(source_file_path))
     shutil.copyfile(source_file_path, destination_file_path)
