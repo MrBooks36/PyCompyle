@@ -1,6 +1,7 @@
 from os import makedirs, remove
 from os.path import exists, join
 from sys import argv
+from time import sleep
 from zipfile import ZipFile
 from datetime import datetime
 from random import randint
@@ -63,7 +64,10 @@ def run_exe():
     run('cls', shell=True)
     run([python, '-B', script_path] + args, shell=True)
     try: rmtree(output_dir)
-    except: pass
+    except: 
+        print('Retrying rmtree')
+        sleep(1)
+        rmtree(output_dir)
 
 def main():
     print('Loading...')
