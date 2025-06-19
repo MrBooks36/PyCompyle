@@ -1,6 +1,7 @@
 import os, sys, platform, shutil, subprocess, ast, importlib.util, logging, argparse, fnmatch
 from components import getimports, makexe
 from getpass import getpass
+from logging import info
 
 def setup_logging(verbose=False):
     log_level = logging.DEBUG if verbose else logging.INFO
@@ -26,16 +27,16 @@ def setup_destination_folder(source_file):
 
 def copy_python_executable(folder_path):
     python_executable = sys.executable
-    if 'python.exe' not in python_executable:
+    if not os.path.basename(python_executable) == 'python.exe':
         logging.error('Python interpreter must be named "python.exe".')
         sys.exit(1)
 
     shutil.copy(python_executable, folder_path)
-    logging.info(f"Copied Python executable to {folder_path}")
+    info(f"Copied Python executable to {folder_path}")
 
     python_dir = os.path.dirname(python_executable)
     shutil.copytree(os.path.join(python_dir, 'DLLs'), os.path.join(folder_path, 'DLLs'))
-    logging.info(f"Copied Python DLL folder to {folder_path}")
+    info(f"Copied Python DLL folder to {folder_path}")
 
     for dll_phrase in ['python', 'vcruntime']:
         for dll in find_dlls_with_phrase(python_dir, dll_phrase):
@@ -102,10 +103,10 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path):
             try:
                 if os.path.isdir(path):
                     shutil.copytree(path, os.path.join(target_path, os.path.basename(path)))
-                    logging.info(f"Copied module: {os.path.basename(path)}")
+                    info(f"Copied module: {os.path.basename(path)}")
                 else:
                     shutil.copyfile(path, os.path.join(target_path, os.path.basename(path)))
-                    logging.info(f"Copied file: {os.path.basename(path)}")
+                    info(f"Copied file: {os.path.basename(path)}")
             except Exception as e:
                 logging.error(f"Error copying {path}: {e}")
 
@@ -135,23 +136,26 @@ def copy_folder_with_excludes(src, dst, exclude_patterns):
 def main():
     validate_platform()
 
-    parser = argparse.ArgumentParser(description="Package a Python script with its dependencies.")
+    parser = argparse.ArgumentParser(description="Package a Python script into a EXE with its dependencies.")
     parser.add_argument('source_file', help='The Python script to package.')
     parser.add_argument('-nc', '--noconfirm', action='store_true', help='Skip confirmation for wrapping the exe', default=False)
     parser.add_argument('-i', '--icon', help='Icon for the created EXE', default=False)
-    parser.add_argument('-p', '--package', action='append', help='Include a package that might have been missed (CAPS matter)', default=[])
-    parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output.', default=False)
+    parser.add_argument('-p', '--package', action='append', help='Include a package that might have been missed. (CAPS matter) Can be used multiple times.', default=[])
+    parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output.', default=False)
     parser.add_argument('-w', '--windowed', action='store_true', help='Disable console', default=False)
     parser.add_argument('-k', '--keepfiles', action='store_true', help='Keep the build files', default=False)
+    parser.add_argument('-d', '--debug', action='store_true', help='Enable all debugging tools: "--verbose" "--keepfiles and disable "--windowed"', default=False)
     parser.add_argument('-r', '--raw', action='store_true', help="Don't check for imports (good for built-in and no imports)", default=False)
     parser.add_argument('-cf', '--copyfolder', action='append', help='Path(s) to folder(s) to copy into the build directory. Can be used multiple times.', default=[])
-    parser.add_argument('-e', '--exclude', action='append', help='Glob pattern(s) to exclude when copying folders (e.g. __pycache__, *.log)', default=[])
-
     args = parser.parse_args()
+    if args.debug:
+        args.verbose = True
+        args.keepfiles = True
+        args.windowed = False
     setup_logging(args.verbose)
 
     source_file_path = os.path.abspath(args.source_file)
-    logging.info(f"Source file: {source_file_path}")
+    info(f"Source file: {source_file_path}")
     os.chdir(os.path.dirname(source_file_path))
 
     folder_path = setup_destination_folder(args.source_file)
@@ -162,8 +166,8 @@ def main():
         if os.path.isdir(folder):
             dest_path = os.path.join(folder_path, os.path.basename(folder))
             try:
-                copy_folder_with_excludes(folder, dest_path, args.exclude)
-                logging.info(f"Copied folder '{folder}' to '{dest_path}' with exclusions {args.exclude}")
+                copy_folder_with_excludes(folder, dest_path, ['__pycache__', '.git'])
+                info(f"Copied folder '{folder}' to '{dest_path}' ")
             except Exception as e:
                 logging.error(f"Failed to copy folder '{folder}': {e}")
         else:
@@ -177,9 +181,9 @@ def main():
 
     destination_file_path = os.path.join(folder_path, os.path.basename(source_file_path))
     shutil.copyfile(source_file_path, destination_file_path)
-    logging.info(f"Packaged script copied to {destination_file_path}")
+    info(f"Packaged script copied to {destination_file_path}")
 
-    logging.info(f"Packaging complete: {folder_path}")
+    info(f"Packaging complete: {folder_path}")
     if not args.noconfirm:
         getpass('Press Enter to continue wrapping the EXE')
     makexe.main(folder_path, args.windowed, os.path.basename(source_file_path), args.keepfiles, args.icon)
