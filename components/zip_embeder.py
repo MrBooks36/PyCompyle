@@ -1,6 +1,4 @@
 import os
-import sys
-import zipfile
 import logging
 from logging import info
 def setup_logging():

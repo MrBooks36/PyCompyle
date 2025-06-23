@@ -81,7 +81,7 @@ def run_extracted_executable(output_dir):
     # Execute the script using Python executable with forwarded args
     additional_args = sys.argv[1:]  # Skip the current script name
     run('cls', shell=True)
-    run([python_executable, '-B', script_path] + additional_args)
+    run([python_executable, '-B', script_path] + additional_args, shell=True)
 
 def cleanup_directory(output_dir):
     try:
