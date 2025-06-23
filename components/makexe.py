@@ -100,10 +100,11 @@ def main(folder_path, no_console=False, source_file_name='source.pyw', keepfiles
     delete_pycache(folder_path)
     delete_pycache(os.getcwd())
 
-    info('Writing source file name...')
+    info('Writing python args')
     with open(os.path.join(folder_path, 'thefilename'), 'w') as file:
         file.write(source_file_name)
-
+    with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
+        file.write('Dlls\nLib')
     compress_folder_with_progress(folder_path, folder_name)
 
     info('Creating executable...')
