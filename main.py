@@ -19,7 +19,7 @@ def find_dlls_with_phrase(directory, phrase):
     ]
 
 def setup_destination_folder(source_file):
-    destination_folder = os.path.abspath(os.path.splitext(source_file)[0] + '.build')
+    destination_folder = os.path.abspath(source_file.replace('.py', '.build'))
     if os.path.exists(destination_folder):
         shutil.rmtree(destination_folder)
     os.makedirs(destination_folder)
@@ -145,7 +145,6 @@ def main():
     parser.add_argument('-w', '--windowed', action='store_true', help='Disable console', default=False)
     parser.add_argument('-k', '--keepfiles', action='store_true', help='Keep the build files', default=False)
     parser.add_argument('-d', '--debug', action='store_true', help='Enable all debugging tools: "--verbose" "--keepfiles and disable "--windowed"', default=False)
-    parser.add_argument('-r', '--raw', action='store_true', help="Don't check for imports (good for built-in and no imports)", default=False)
     parser.add_argument('-cf', '--copyfolder', action='append', help='Path(s) to folder(s) to copy into the build directory. Can be used multiple times.', default=[])
     args = parser.parse_args()
     if args.debug:
@@ -173,11 +172,11 @@ def main():
         else:
             logging.error(f"The specified path for --copyfolder is not a directory: {folder}")
 
-    if not args.raw:
-        cleaned_modules = process_imports(source_file_path, args.package, args.keepfiles)
-        lib_path = os.path.join(folder_path, 'lib')
-        os.makedirs(lib_path, exist_ok=True)
-        copy_dependencies(cleaned_modules, lib_path, folder_path)
+    
+    cleaned_modules = process_imports(source_file_path, args.package, args.keepfiles)
+    lib_path = os.path.join(folder_path, 'lib')
+    os.makedirs(lib_path, exist_ok=True)
+    copy_dependencies(cleaned_modules, lib_path, folder_path)
 
     destination_file_path = os.path.join(folder_path, os.path.basename(source_file_path))
     shutil.copyfile(source_file_path, destination_file_path)
