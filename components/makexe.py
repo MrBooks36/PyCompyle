@@ -3,6 +3,7 @@ import shutil
 import logging
 import zipfile
 import requests
+import sys
 from logging import info, error
 from sys import argv
 from tqdm import tqdm
@@ -53,7 +54,7 @@ def delete_pycache(start_dir):
 
 def create_executable(name, zip_path, no_console=False):
     """Creates an executable file using the zip_embeder."""
-    exe_folder = os.path.join(os.path.dirname(argv[0]), 'EXEs')
+    exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs')
     bootloader = 'bootloaderw.exe' if no_console else 'bootloader.exe'
     zip_embeder.main(name, os.path.join(exe_folder, bootloader), zip_path)
 
