@@ -23,7 +23,7 @@ def setup_destination_folder(source_file):
     destination_folder = os.path.abspath(source_file.replace('.py', '.build'))
     if os.path.exists(destination_folder):
         shutil.rmtree(destination_folder)
-    os.makedirs(destination_folder)
+    os.makedirs(destination_folder) 
     return destination_folder
 
 def copy_python_executable(folder_path):
@@ -161,23 +161,50 @@ def process_imports(source_file_path, packages, keepfile):
     logging.debug(f"Identified cleaned modules: {cleaned_modules}")
     return cleaned_modules
 
-def copy_dependencies(cleaned_modules, lib_path, folder_path):
+def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
     for module_name in cleaned_modules:
         if module_name == '__main__':
             continue
+
         spec = importlib.util.find_spec(module_name)
-        if spec and spec.origin and 'built-in' not in spec.origin and 'frozen' not in spec.origin:
-            path = spec.origin.replace(r'\__init__.py', '')
-            target_path = folder_path if 'site-packages' in path else lib_path
+
+        # Handle built-in/frozen modules or failed spec
+        if spec is None or spec.origin is None or 'built-in' in spec.origin or 'frozen' in spec.origin:
+            # Check if this is a local folder without __init__.py
+            local_folder = os.path.join(source_dir, module_name)
+            if os.path.isdir(local_folder):
+                target_path = os.path.join(folder_path, module_name)
+                try:
+                    copy_folder_with_excludes(local_folder, target_path, exclude_patterns=['__pycache__', '.git'])
+                    info(f"Copied local folder module (no __init__.py): {module_name}")
+                except Exception as e:
+                    logging.error(f"Error copying local folder {local_folder}: {e}")
+            else:
+                logging.debug(f"No local folder found for module: {module_name}")
+            continue
+
+        # Clean up path if it ends with __init__.py (i.e. package)
+        origin_path = spec.origin
+        if origin_path.endswith('__init__.py') or origin_path.endswith('__init__.pyc'):
+            # It's a package folder, copy entire folder to lib_path
+            package_folder = os.path.dirname(origin_path)
+            target_path = os.path.join(lib_path, os.path.basename(package_folder))
             try:
-                if os.path.isdir(path):
-                    shutil.copytree(path, os.path.join(target_path, os.path.basename(path)))
-                    info(f"Copied module: {os.path.basename(path)}")
-                else:
-                    shutil.copyfile(path, os.path.join(target_path, os.path.basename(path)))
-                    info(f"Copied file: {os.path.basename(path)}")
+                if os.path.exists(target_path):
+                    shutil.rmtree(target_path)
+                shutil.copytree(package_folder, target_path)
+                info(f"Copied package folder: {os.path.basename(package_folder)} to lib")
             except Exception as e:
-                logging.error(f"Error copying {path}: {e}")
+                logging.error(f"Error copying package folder {package_folder}: {e}")
+        else:
+            # It's a single module file, copy to lib_path
+            try:
+                shutil.copy2(origin_path, os.path.join(lib_path, os.path.basename(origin_path)))
+                info(f"Copied module file: {os.path.basename(origin_path)} to lib")
+            except Exception as e:
+                logging.error(f"Error copying module file {origin_path}: {e}")
+
+
 
 def should_exclude(name, patterns):
     for pattern in patterns:
@@ -244,7 +271,9 @@ def main():
     cleaned_modules = process_imports(source_file_path, args.package, args.keepfiles)
     lib_path = os.path.join(folder_path, 'lib')
     os.makedirs(lib_path, exist_ok=True)
-    copy_dependencies(cleaned_modules, lib_path, folder_path)
+    source_dir = os.path.dirname(source_file_path)
+    copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir)
+
 
     destination_file_path = os.path.join(folder_path, os.path.basename(source_file_path))
     shutil.copyfile(source_file_path, destination_file_path)
