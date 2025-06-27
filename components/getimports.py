@@ -49,12 +49,6 @@ def recursive_imports(entry_script, visited=None, base_dir=None):
                 for path in possible_paths:
                     if os.path.exists(path):
                         to_process.append(path)
-
-            # Add functionality to check for imports in standard Python libraries
-            std_lib_path = os.path.join(os.path.dirname(os.__file__), imp + ".py")
-            if os.path.exists(std_lib_path):
-                all_imports.update(recursive_imports(std_lib_path, visited, os.path.dirname(std_lib_path)))
-
     return all_imports
 
 if __name__ == "__main__":
