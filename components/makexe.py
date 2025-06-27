@@ -5,7 +5,6 @@ import zipfile
 import requests
 import sys
 from logging import info, error
-from sys import argv
 from tqdm import tqdm
 
 try:
