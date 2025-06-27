@@ -1,7 +1,7 @@
 import os, sys, platform, shutil, subprocess, ast, importlib.util, logging, argparse, fnmatch, json, urllib.request
 from components import getimports, makexe
 from getpass import getpass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from logging import info
 
 def setup_logging(verbose=False):
@@ -44,9 +44,6 @@ def copy_python_executable(folder_path):
             shutil.copy(dll, folder_path)
 
 def load_linked_imports(force=False):
-    import urllib.request
-    from datetime import datetime, timedelta, timezone
-
     local_appdata = os.environ.get("LOCALAPPDATA", "")
     cache_dir = os.path.join(local_appdata, "PyPackager.cache")
     cache_file = os.path.join(cache_dir, "linked_imports.json")
