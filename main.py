@@ -1,6 +1,7 @@
-import os, sys, platform, shutil, subprocess, ast, importlib.util, logging, argparse, fnmatch
+import os, sys, platform, shutil, subprocess, ast, importlib.util, logging, argparse, fnmatch, json, urllib.request
 from components import getimports, makexe
 from getpass import getpass
+from datetime import datetime, timedelta
 from logging import info
 
 def setup_logging(verbose=False):
@@ -41,6 +42,66 @@ def copy_python_executable(folder_path):
     for dll_phrase in ['python', 'vcruntime']:
         for dll in find_dlls_with_phrase(python_dir, dll_phrase):
             shutil.copy(dll, folder_path)
+
+def load_linked_imports(force=False):
+    import urllib.request
+    from datetime import datetime, timedelta, timezone
+
+    local_appdata = os.environ.get("LOCALAPPDATA", "")
+    cache_dir = os.path.join(local_appdata, "PyPackager.cache")
+    cache_file = os.path.join(cache_dir, "linked_imports.json")
+    timestamp_file = os.path.join(cache_dir, "linked_imports.timestamp")
+    fallback_path = os.path.join(os.path.dirname(__file__), "linked_imports.json")
+    github_url = "https://raw.githubusercontent.com/MrBooks36/PyPackager/main/linked_imports.json"
+    refresh_interval = timedelta(hours=24)
+
+    os.makedirs(cache_dir, exist_ok=True)
+
+    def download_and_update():
+        try:
+            logging.debug(f"Downloading linked_imports.json from GitHub: {github_url}")
+            urllib.request.urlretrieve(github_url, cache_file)
+            with open(timestamp_file, "w") as tf:
+                tf.write(datetime.now(timezone.utc).isoformat())
+            logging.info("linked_imports.json downloaded and timestamp updated.")
+        except Exception as e:
+            logging.warning(f"Failed to download linked_imports.json: {e}")
+
+    needs_refresh = force or not os.path.exists(cache_file)
+
+    if not needs_refresh:
+        if os.path.exists(timestamp_file):
+            try:
+                with open(timestamp_file, "r") as tf:
+                    last_updated = datetime.fromisoformat(tf.read().strip())
+                    if datetime.now(timezone.utc) - last_updated >= refresh_interval:
+                        needs_refresh = True
+                        logging.debug("linked_imports.json is older than 24 hours, will refresh.")
+            except Exception as e:
+                logging.warning(f"Invalid timestamp format, forcing refresh: {e}")
+                needs_refresh = True
+
+    if needs_refresh:
+        logging.info("Refreshing linked_imports.json (forced or outdated).")
+        download_and_update()
+
+    if os.path.exists(cache_file):
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            logging.warning("Invalid JSON in cached linked_imports.json.")
+
+    if os.path.exists(fallback_path):
+        try:
+            with open(fallback_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except json.JSONDecodeError:
+            logging.warning("Invalid JSON in fallback linked_imports.json.")
+
+    logging.debug("No linked_imports.json could be loaded from any location.")
+    return {}
+
 
 def process_imports(source_file_path, packages, keepfile):
     source_dir = os.path.dirname(source_file_path)
@@ -88,7 +149,18 @@ def process_imports(source_file_path, packages, keepfile):
         logging.error(f"Output received: {output}")
         modules = []
 
-    cleaned_modules = sorted(set(mod.split('.')[0] for mod in modules if mod and isinstance(mod, str)))
+    cleaned_modules = set(mod.split('.')[0] for mod in modules if mod and isinstance(mod, str))
+
+    # Add linked imports
+    linked_imports = load_linked_imports()
+    linked_extras = set()
+    for mod in cleaned_modules:
+        extras = linked_imports.get(mod, [])
+        linked_extras.update(extras)
+
+    cleaned_modules.update(linked_extras)
+    cleaned_modules = sorted(cleaned_modules)
+
     logging.debug(f"Identified cleaned modules: {cleaned_modules}")
     return cleaned_modules
 
@@ -122,7 +194,6 @@ def copy_folder_with_excludes(src, dst, exclude_patterns):
         rel_path = os.path.relpath(root, src)
         dest_root = os.path.join(dst, rel_path) if rel_path != '.' else dst
 
-        # Filter directories
         dirs[:] = [d for d in dirs if not should_exclude(d, exclude_patterns)]
 
         for file in files:
@@ -146,7 +217,9 @@ def main():
     parser.add_argument('-k', '--keepfiles', action='store_true', help='Keep the build files', default=False)
     parser.add_argument('-d', '--debug', action='store_true', help='Enable all debugging tools: "--verbose" "--keepfiles and disable "--windowed"', default=False)
     parser.add_argument('-cf', '--copyfolder', action='append', help='Path(s) to folder(s) to copy into the build directory. Can be used multiple times.', default=[])
+    parser.add_argument('--force-refresh', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
     args = parser.parse_args()
+
     if args.debug:
         args.verbose = True
         args.keepfiles = True
@@ -160,7 +233,6 @@ def main():
     folder_path = setup_destination_folder(args.source_file)
     copy_python_executable(folder_path)
 
-    # Copy additional folders with exclusions
     for folder in args.copyfolder:
         if os.path.isdir(folder):
             dest_path = os.path.join(folder_path, os.path.basename(folder))
@@ -172,7 +244,6 @@ def main():
         else:
             logging.error(f"The specified path for --copyfolder is not a directory: {folder}")
 
-    
     cleaned_modules = process_imports(source_file_path, args.package, args.keepfiles)
     lib_path = os.path.join(folder_path, 'lib')
     os.makedirs(lib_path, exist_ok=True)
