@@ -1,5 +1,5 @@
-
 {
   "_comment": "This JSON file list contains Python modules that are linked to other modules that are not captured",
-  "urllib": ["nturl2path", "base64", "quopri"]
+  "urllib": ["nturl2path", "base64", "quopri"],
+  "logging": ["queue"]
 }
