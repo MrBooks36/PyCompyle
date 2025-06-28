@@ -8,9 +8,9 @@ from logging import info, error
 from tqdm import tqdm
 
 try:
-    from components import zip_embeder
+    from components import zip_embeder, adduac
 except ImportError:
-    import zip_embeder
+    import zip_embeder, adduac
 
 
 def setup_logging(log_level=logging.INFO):
@@ -61,9 +61,11 @@ def create_executable(name, zip_path, no_console=False):
 def download_and_extract_zip(url, extract_to='resource_hacker'):
     """Downloads and extracts a zip file from a given URL."""
     os.makedirs(extract_to, exist_ok=True)
+    extract_to= os.path.join(extract_to, 'resource_hacker')
+    os.makedirs(extract_to, exist_ok=True)
 
     zip_filename = os.path.join(extract_to, 'resource_hacker.zip')
-    response = requests.get(url)
+    response = requests.get(url, headers={"User-Agent": "XY"})
     response.raise_for_status()  # Ensure the request was successful
 
     with open(zip_filename, 'wb') as file:
@@ -73,7 +75,7 @@ def download_and_extract_zip(url, extract_to='resource_hacker'):
         zip_ref.extractall(extract_to)
 
     os.remove(zip_filename)
-    print(f"Files extracted to: {extract_to}")
+    info(f"Files extracted to: {extract_to}")
 
 
 def add_icon_to_executable(name, icon_path):
@@ -91,7 +93,7 @@ def add_icon_to_executable(name, icon_path):
     os.system(command)
 
 
-def main(folder_path, no_console=False, source_file_name='source.pyw', keepfiles=False, icon_path=None):
+def main(folder_path, no_console=False, source_file_name='source.pyw', keepfiles=False, icon_path=None, uac=False):
     """Main function to execute the operations."""
     setup_logging()
     folder_name = os.path.basename(folder_path).replace('.build', '')
@@ -116,6 +118,9 @@ def main(folder_path, no_console=False, source_file_name='source.pyw', keepfiles
             add_icon_to_executable(folder_name, icon_path)
         else:
             error(f'Icon file not found: {icon_path}')
+    if uac:
+        info('Adding UAC to the executable...')
+        adduac.main(os.path.join(os.getcwd(), f"{folder_name}.exe"))
 
     if not keepfiles:
         info('Cleaning up...')

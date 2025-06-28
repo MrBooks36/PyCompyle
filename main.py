@@ -23,7 +23,7 @@ def setup_destination_folder(source_file):
     destination_folder = os.path.abspath(source_file.replace('.py', '.build'))
     if os.path.exists(destination_folder):
         shutil.rmtree(destination_folder)
-    os.makedirs(destination_folder) 
+    os.makedirs(destination_folder)
     return destination_folder
 
 def copy_python_executable(folder_path):
@@ -48,9 +48,9 @@ def load_linked_imports(force=False):
     cache_dir = os.path.join(local_appdata, "PyPackager.cache")
     cache_file = os.path.join(cache_dir, "linked_imports.json")
     timestamp_file = os.path.join(cache_dir, "linked_imports.timestamp")
-    fallback_path = os.path.join(os.path.dirname(__file__), "linked_imports.json")
     github_url = "https://raw.githubusercontent.com/MrBooks36/PyPackager/main/linked_imports.json"
     refresh_interval = timedelta(hours=24)
+    local_json = os.path.join(os.path.dirname(__file__), "linked_imports.json")
 
     os.makedirs(cache_dir, exist_ok=True)
 
@@ -65,40 +65,52 @@ def load_linked_imports(force=False):
             logging.warning(f"Failed to download linked_imports.json: {e}")
 
     needs_refresh = force or not os.path.exists(cache_file)
-
-    if not needs_refresh:
-        if os.path.exists(timestamp_file):
-            try:
-                with open(timestamp_file, "r") as tf:
-                    last_updated = datetime.fromisoformat(tf.read().strip())
-                    if datetime.now(timezone.utc) - last_updated >= refresh_interval:
-                        needs_refresh = True
-                        logging.debug("linked_imports.json is older than 24 hours, will refresh.")
-            except Exception as e:
-                logging.warning(f"Invalid timestamp format, forcing refresh: {e}")
-                needs_refresh = True
+    if not needs_refresh and os.path.exists(timestamp_file):
+        try:
+            with open(timestamp_file, "r") as tf:
+                last_updated = datetime.fromisoformat(tf.read().strip())
+                if datetime.now(timezone.utc) - last_updated >= refresh_interval:
+                    needs_refresh = True
+                    logging.debug("linked_imports.json cache is older than 24 hours, will refresh.")
+        except Exception as e:
+            logging.warning(f"Invalid timestamp format, forcing refresh: {e}")
+            needs_refresh = True
 
     if needs_refresh:
-        logging.info("Refreshing linked_imports.json (forced or outdated).")
+        logging.info("Refreshing cached linked_imports.json")
         download_and_update()
+
+    if os.path.exists(local_json):
+        try:
+            with open(local_json, "r", encoding="utf-8") as f:
+                logging.info("Using local linked_imports.json (same folder as script)")
+                return json.load(f)
+        except Exception as e:
+            logging.warning(f"Local linked_imports.json invalid: {e}")
 
     if os.path.exists(cache_file):
         try:
             with open(cache_file, "r", encoding="utf-8") as f:
+                logging.info("Using cached linked_imports.json (from cache directory)")
                 return json.load(f)
-        except json.JSONDecodeError:
-            logging.warning("Invalid JSON in cached linked_imports.json.")
+        except Exception as e:
+            logging.warning(f"Cached linked_imports.json invalid: {e}")
 
-    if os.path.exists(fallback_path):
-        try:
-            with open(fallback_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except json.JSONDecodeError:
-            logging.warning("Invalid JSON in fallback linked_imports.json.")
-
-    logging.debug("No linked_imports.json could be loaded from any location.")
+    logging.warning("No valid linked_imports.json could be loaded from local or cache.")
     return {}
 
+def resolve_linked_imports_recursive(base_modules, linked_map):
+    resolved = set()
+    queue = list(base_modules)
+
+    while queue:
+        module = queue.pop()
+        if module not in resolved:
+            resolved.add(module)
+            linked = linked_map.get(module, [])
+            logging.debug(f"Module '{module}' links to: {linked}")
+            queue.extend(linked)
+    return resolved
 
 def process_imports(source_file_path, packages, keepfile):
     source_dir = os.path.dirname(source_file_path)
@@ -141,24 +153,17 @@ def process_imports(source_file_path, packages, keepfile):
 
     try:
         modules = ast.literal_eval(output)
-    except (SyntaxError, Exception) as e:
+    except Exception as e:
         logging.error(f"Error parsing modules output: {e}")
         logging.error(f"Output received: {output}")
         modules = []
 
     cleaned_modules = set(mod.split('.')[0] for mod in modules if mod and isinstance(mod, str))
 
-    # Add linked imports
     linked_imports = load_linked_imports()
-    linked_extras = set()
-    for mod in cleaned_modules:
-        extras = linked_imports.get(mod, [])
-        linked_extras.update(extras)
-
-    cleaned_modules.update(linked_extras)
+    cleaned_modules = resolve_linked_imports_recursive(cleaned_modules.union(packages), linked_imports)
     cleaned_modules = sorted(cleaned_modules)
-
-    logging.debug(f"Identified cleaned modules: {cleaned_modules}")
+    logging.debug(f"Final cleaned modules (with linked deps): {cleaned_modules}")
     return cleaned_modules
 
 def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
@@ -167,10 +172,7 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
             continue
 
         spec = importlib.util.find_spec(module_name)
-
-        # Handle built-in/frozen modules or failed spec
         if spec is None or spec.origin is None or 'built-in' in spec.origin or 'frozen' in spec.origin:
-            # Check if this is a local folder without __init__.py
             local_folder = os.path.join(source_dir, module_name)
             if os.path.isdir(local_folder):
                 target_path = os.path.join(folder_path, module_name)
@@ -183,10 +185,8 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                 logging.debug(f"No local folder found for module: {module_name}")
             continue
 
-        # Clean up path if it ends with __init__.py (i.e. package)
         origin_path = spec.origin
         if origin_path.endswith('__init__.py') or origin_path.endswith('__init__.pyc'):
-            # It's a package folder, copy entire folder to lib_path
             package_folder = os.path.dirname(origin_path)
             target_path = os.path.join(lib_path, os.path.basename(package_folder))
             try:
@@ -197,20 +197,14 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
             except Exception as e:
                 logging.error(f"Error copying package folder {package_folder}: {e}")
         else:
-            # It's a single module file, copy to lib_path
             try:
                 shutil.copy2(origin_path, os.path.join(lib_path, os.path.basename(origin_path)))
                 info(f"Copied module file: {os.path.basename(origin_path)} to lib")
             except Exception as e:
                 logging.error(f"Error copying module file {origin_path}: {e}")
 
-
-
 def should_exclude(name, patterns):
-    for pattern in patterns:
-        if fnmatch.fnmatch(name, pattern):
-            return True
-    return False
+    return any(fnmatch.fnmatch(name, pattern) for pattern in patterns)
 
 def copy_folder_with_excludes(src, dst, exclude_patterns):
     os.makedirs(dst, exist_ok=True)
@@ -235,13 +229,14 @@ def main():
     parser.add_argument('source_file', help='The Python script to package.')
     parser.add_argument('-nc', '--noconfirm', action='store_true', help='Skip confirmation for wrapping the exe', default=False)
     parser.add_argument('-i', '--icon', help='Icon for the created EXE', default=False)
-    parser.add_argument('-p', '--package', action='append', help='Include a package that might have been missed. (CAPS matter) Can be used multiple times.', default=[])
+    parser.add_argument('-p', '--package', action='append', help='Include a package that might have been missed.', default=[])
     parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output.', default=False)
     parser.add_argument('-w', '--windowed', action='store_true', help='Disable console', default=False)
     parser.add_argument('-k', '--keepfiles', action='store_true', help='Keep the build files', default=False)
-    parser.add_argument('-d', '--debug', action='store_true', help='Enable all debugging tools: "--verbose" "--keepfiles and disable "--windowed"', default=False)
-    parser.add_argument('-cf', '--copyfolder', action='append', help='Path(s) to folder(s) to copy into the build directory. Can be used multiple times.', default=[])
+    parser.add_argument('-d', '--debug', action='store_true', help='Enable all debugging tools: --verbose --keepfiles and disable --windowed', default=False)
+    parser.add_argument('-cf', '--copyfolder', action='append', help='Folder(s) to copy into the build directory.', default=[])
     parser.add_argument('--force-refresh', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
+    parser.add_argument('-uac', '--uac', action='store_true', help='Add UAC to the EXE', default=False)
     args = parser.parse_args()
 
     if args.debug:
@@ -262,7 +257,7 @@ def main():
             dest_path = os.path.join(folder_path, os.path.basename(folder))
             try:
                 copy_folder_with_excludes(folder, dest_path, ['__pycache__', '.git'])
-                info(f"Copied folder '{folder}' to '{dest_path}' ")
+                info(f"Copied folder '{folder}' to '{dest_path}'")
             except Exception as e:
                 logging.error(f"Failed to copy folder '{folder}': {e}")
         else:
@@ -274,7 +269,6 @@ def main():
     source_dir = os.path.dirname(source_file_path)
     copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir)
 
-
     destination_file_path = os.path.join(folder_path, os.path.basename(source_file_path))
     shutil.copyfile(source_file_path, destination_file_path)
     info(f"Packaged script copied to {destination_file_path}")
@@ -282,7 +276,7 @@ def main():
     info(f"Packaging complete: {folder_path}")
     if not args.noconfirm:
         getpass('Press Enter to continue wrapping the EXE')
-    makexe.main(folder_path, args.windowed, os.path.basename(source_file_path), args.keepfiles, args.icon)
+    makexe.main(folder_path, args.windowed, os.path.basename(source_file_path), args.keepfiles, args.icon, uac=args.uac)
 
 if __name__ == "__main__":
     main()
