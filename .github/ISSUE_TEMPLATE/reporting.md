@@ -7,4 +7,4 @@ assignees: MrBooks36
 
 ---
 
-**Please add a tag to make it easier for us to handle**
+Please add a tag to make it easier for us to handle
