@@ -1,5 +1,10 @@
 import ast
 import os
+import logging
+
+def setup_logging(verbose=False):
+    log_level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
 
 def get_imports_from_file(file_path, module_root):
     imports = set()
@@ -8,7 +13,7 @@ def get_imports_from_file(file_path, module_root):
         with open(file_path, "r", encoding="utf-8") as f:
             tree = ast.parse(f.read(), filename=file_path)
     except (OSError, IOError, SyntaxError) as e:
-        print(f"Failed to parse {file_path}: {e}")
+        logging.error(f"Failed to parse {file_path}: {e}")
         return imports
 
     rel_module_path = os.path.relpath(file_path, module_root).replace(os.sep, ".").rstrip(".py")

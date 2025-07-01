@@ -80,14 +80,6 @@ def load_linked_imports(force=False):
         logging.info("Refreshing cached linked_imports.json")
         download_and_update()
 
-    if os.path.exists(local_json):
-        try:
-            with open(local_json, "r", encoding="utf-8") as f:
-                logging.info("Using local linked_imports.json (same folder as script)")
-                return json.load(f)
-        except Exception as e:
-            logging.warning(f"Local linked_imports.json invalid: {e}")
-
     if os.path.exists(cache_file):
         try:
             with open(cache_file, "r", encoding="utf-8") as f:
@@ -96,8 +88,15 @@ def load_linked_imports(force=False):
         except Exception as e:
             logging.warning(f"Cached linked_imports.json invalid: {e}")
 
+    if os.path.exists(local_json):
+        try:
+            with open(local_json, "r", encoding="utf-8") as f:
+                logging.info("Using local linked_imports.json (same folder as script)")
+                return json.load(f)
+        except Exception as e:
+            logging.warning(f"Local linked_imports.json invalid: {e}")
     logging.warning("No valid linked_imports.json could be loaded from local or cache.")
-    return {}
+    return {}        
 
 def resolve_linked_imports_recursive(base_modules, linked_map):
     resolved = set()
@@ -234,7 +233,8 @@ def main():
     parser.add_argument('-w', '--windowed', action='store_true', help='Disable console', default=False)
     parser.add_argument('-k', '--keepfiles', action='store_true', help='Keep the build files', default=False)
     parser.add_argument('-d', '--debug', action='store_true', help='Enable all debugging tools: --verbose --keepfiles and disable --windowed', default=False)
-    parser.add_argument('-cf', '--copyfolder', action='append', help='Folder(s) to copy into the build directory.', default=[])
+    parser.add_argument('-cf', '--copyfolder', action='append', help='(Deprecated) Folder(s) to copy into the build directory.', default=[])
+    parser.add_argument('-c', '--copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
     parser.add_argument('--force-refresh', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
     parser.add_argument('-uac', '--uac', action='store_true', help='Add UAC to the EXE', default=False)
     args = parser.parse_args()
@@ -252,16 +252,22 @@ def main():
     folder_path = setup_destination_folder(args.source_file)
     copy_python_executable(folder_path)
 
-    for folder in args.copyfolder:
-        if os.path.isdir(folder):
-            dest_path = os.path.join(folder_path, os.path.basename(folder))
-            try:
-                copy_folder_with_excludes(folder, dest_path, ['__pycache__', '.git'])
-                info(f"Copied folder '{folder}' to '{dest_path}'")
-            except Exception as e:
-                logging.error(f"Failed to copy folder '{folder}': {e}")
-        else:
-            logging.error(f"The specified path for --copyfolder is not a directory: {folder}")
+    copy_paths = (args.copy or []) + (args.copyfolder or [])
+    for path in copy_paths:
+        name = os.path.basename(path)
+        dest_path = os.path.join(folder_path, name)
+        try:
+            if os.path.isdir(path):
+                copy_folder_with_excludes(path, dest_path, ['__pycache__', '.git'])
+                info(f"Copied folder '{path}' to '{dest_path}'")
+            elif os.path.isfile(path):
+                os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+                shutil.copy2(path, dest_path)
+                info(f"Copied file '{path}' to '{dest_path}'")
+            else:
+                logging.error(f"The specified path does not exist: {path}")
+        except Exception as e:
+            logging.error(f"Failed to copy '{path}': {e}")
 
     cleaned_modules = process_imports(source_file_path, args.package, args.keepfiles)
     lib_path = os.path.join(folder_path, 'lib')
