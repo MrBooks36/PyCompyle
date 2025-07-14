@@ -1,5 +1,5 @@
 import os, sys, platform, shutil, subprocess, ast, importlib.util, logging, argparse, fnmatch, json, urllib.request
-from components import getimports, makexe, pypy
+from components import getimports, makexe
 from getpass import getpass
 from datetime import datetime, timedelta, timezone
 from logging import info
@@ -235,7 +235,6 @@ def main():
     parser.add_argument('-d', '--debug', action='store_true', help='Enable all debugging tools: --verbose --keepfiles and disable --windowed', default=False)
     parser.add_argument('-cf', '--copyfolder', action='append', help='(Deprecated) Folder(s) to copy into the build directory.', default=[])
     parser.add_argument('-c', '--copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
-    parser.add_argument('-pypy', '--pypy', action='store_true', help='Use the PyPy interpreter', default=[])
     parser.add_argument('--force-refresh', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
     parser.add_argument('-uac', '--uac', action='store_true', help='Add UAC to the EXE', default=False)
     args = parser.parse_args()
@@ -251,8 +250,7 @@ def main():
     os.chdir(os.path.dirname(source_file_path))
 
     folder_path = setup_destination_folder(args.source_file)
-    if args.pypy: pypy.use_pypy(folder_path)
-    else: copy_python_executable(folder_path)
+    copy_python_executable(folder_path)
 
     copy_paths = (args.copy or []) + (args.copyfolder or [])
     for path in copy_paths:
@@ -272,7 +270,7 @@ def main():
             logging.error(f"Failed to copy '{path}': {e}")
 
     cleaned_modules = process_imports(source_file_path, args.package, args.keepfiles)
-    lib_path = os.path.join(folder_path, 'Lib')
+    lib_path = os.path.join(folder_path, 'lib')
     os.makedirs(lib_path, exist_ok=True)
     source_dir = os.path.dirname(source_file_path)
     copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir)
