@@ -8,6 +8,7 @@ __pycache__/
 
 # Testing
 *test*
+proxy_config.json
 
 # Distribution / packaging
 .Python
