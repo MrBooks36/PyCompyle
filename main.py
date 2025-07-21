@@ -43,6 +43,11 @@ def copy_python_executable(folder_path):
         for dll in find_dlls_with_phrase(python_dir, dll_phrase):
             shutil.copy(dll, folder_path)
 
+def copy_tk(folder_path):
+    python_folder = os.path.dirname(sys.executable)
+    shutil.copytree(os.path.join(python_folder, 'tcl'), os.path.join(folder_path, 'tcl'))       
+    info(f'Copied Tcl folder to {folder_path}')
+    
 def load_linked_imports(force=False):
     local_appdata = os.environ.get("LOCALAPPDATA", "")
     cache_dir = os.path.join(local_appdata, "PyPackager.cache")
@@ -80,6 +85,14 @@ def load_linked_imports(force=False):
         logging.info("Refreshing cached linked_imports.json")
         download_and_update()
 
+    if os.path.exists(local_json) and os.path.exists(os.path.join(os.path.dirname(__file__), "localjson")):
+        try:
+            with open(local_json, "r", encoding="utf-8") as f:
+                logging.info("Using local linked_imports.json (same folder as script)")
+                return json.load(f)
+        except Exception as e:
+            logging.warning(f"Local linked_imports.json invalid: {e}")    
+
     if os.path.exists(cache_file):
         try:
             with open(cache_file, "r", encoding="utf-8") as f:
@@ -110,6 +123,7 @@ def resolve_linked_imports_recursive(base_modules, linked_map):
             logging.debug(f"Module '{module}' links to: {linked}")
             queue.extend(linked)
     return resolved
+
 
 def process_imports(source_file_path, packages, keepfile):
     source_dir = os.path.dirname(source_file_path)
@@ -236,6 +250,7 @@ def main():
     parser.add_argument('-cf', '--copyfolder', action='append', help='(Deprecated) Folder(s) to copy into the build directory.', default=[])
     parser.add_argument('-c', '--copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
     parser.add_argument('--force-refresh', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
+    parser.add_argument('-tk', '--use-tkinter', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
     parser.add_argument('-uac', '--uac', action='store_true', help='Add UAC to the EXE', default=False)
     args = parser.parse_args()
 
@@ -251,6 +266,9 @@ def main():
 
     folder_path = setup_destination_folder(args.source_file)
     copy_python_executable(folder_path)
+
+    if args.use_tkinter:
+        copy_tk(folder_path)
 
     copy_paths = (args.copy or []) + (args.copyfolder or [])
     for path in copy_paths:
@@ -282,7 +300,7 @@ def main():
     info(f"Packaging complete: {folder_path}")
     if not args.noconfirm:
         getpass('Press Enter to continue wrapping the EXE')
-    makexe.main(folder_path, args.windowed, os.path.basename(source_file_path), args.keepfiles, args.icon, uac=args.uac)
+    makexe.main(os.path.basename(source_file_path), folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac)
 
 if __name__ == "__main__":
     main()
