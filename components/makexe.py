@@ -53,7 +53,7 @@ def delete_pycache(start_dir):
 
 def create_executable(name, zip_path, no_console=False):
     """Creates an executable file using the zip_embeder."""
-    exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs')
+    exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs') # type: ignore
     bootloader = 'bootloaderw.exe' if no_console else 'bootloader.exe'
     zip_embeder.main(name, os.path.join(exe_folder, bootloader), zip_path)
 
@@ -80,6 +80,7 @@ def download_and_extract_zip(url, extract_to='resource_hacker'):
 
 def add_icon_to_executable(name, icon_path):
     """Adds an icon to an executable using Resource Hacker."""
+    name = os.path.abspath(name)
     cache_path = os.path.expandvars('%LOCALAPPDATA%\\PyPackager.cache')
     os.makedirs(cache_path, exist_ok=True)
     info(f'Cache path: {cache_path}')
@@ -90,10 +91,10 @@ def add_icon_to_executable(name, icon_path):
 
     r_hacker_path = os.path.join(cache_path, 'resource_hacker', 'ResourceHacker.exe')
     command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
-    os.system(command)
+    os.system(f'cmd /c "{command}"')
 
 
-def main(folder_path, no_console=False, source_file_name='source.pyw', keepfiles=False, icon_path=None, uac=False):
+def main(source_file_name, folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False):
     """Main function to execute the operations."""
     setup_logging()
     folder_name = os.path.basename(folder_path).replace('.build', '')
