@@ -1,11 +1,15 @@
 {
   "_comment": "This JSON file list contains Python modules that are linked to other modules might have not been captured in complex scripts.",
   "logging": ["queue", "pickle", "copy"],
-  "urllib": ["nturl2path", "base64", "quopri", "email", "hashlib", "http", "bisect", "tempfile"],
+  "urllib": ["nturl2path", "base64", "quopri", "email", "hashlib", "http", "bisect", "tempfile", "ipaddress"],
   "email": ["datetime", "calendar", "string", "random", "socket"],
   "tempfile": ["weakref"],
   "calendar": ["locale"],
   "queue": ["heapq"],
   "pickle": ["_compat_pickle"],
-  "socket": ["selectors"]
+  "socket": ["selectors"],
+  "win32com": ["traceback", "winerror", "glob", "win32event", "pickle"],
+  "traceback": ["linecache", "textwrap"],
+  "linecache": ["tokenize"],
+  "tokenize": ["token"]
 }

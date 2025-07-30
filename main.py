@@ -216,6 +216,15 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
             except Exception as e:
                 logging.error(f"Error copying module file {origin_path}: {e}")
 
+
+        # pywin32_system32 special case
+        if module_name == 'pythoncom' and platform.architecture()[0] == '64bit':
+            copy_folder_with_excludes(
+                os.path.join(os.path.dirname(spec.origin), 'pywin32_system32'),
+                os.path.join(folder_path, 'pywin32_system32'),
+                exclude_patterns=['__pycache__', '.git']
+            )        
+
 def should_exclude(name, patterns):
     return any(fnmatch.fnmatch(name, pattern) for pattern in patterns)
 
