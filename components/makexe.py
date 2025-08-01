@@ -8,9 +8,9 @@ from logging import info, error
 from tqdm import tqdm
 
 try:
-    from components import zip_embeder, adduac
+    from components import zip_embeder
 except ImportError:
-    import zip_embeder, adduac
+    import zip_embeder
 
 
 def setup_logging(log_level=logging.INFO):
@@ -51,10 +51,19 @@ def delete_pycache(start_dir):
     info(f"Total '__pycache__' folders deleted: {deleted_count}")
 
 
-def create_executable(name, zip_path, no_console=False):
+def create_executable(name, zip_path, no_console=False, uac=False):
     """Creates an executable file using the zip_embeder."""
-    exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs') # type: ignore
-    bootloader = 'bootloaderw.exe' if no_console else 'bootloader.exe'
+    exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs')  # type: ignore
+    
+    bootloader_map = {
+        (False, False): "bootloader.exe",
+        (False, True): "bootloader_uac.exe",
+        (True, False): "bootloaderw.exe",
+        (True, True): "bootloaderw_uac.exe",
+    }
+    
+    bootloader = bootloader_map[(no_console, uac)]
+    
     zip_embeder.main(name, os.path.join(exe_folder, bootloader), zip_path)
 
 
@@ -111,7 +120,7 @@ def main(source_file_name, folder_path, no_console=False, keepfiles=False, icon_
     compress_folder_with_progress(folder_path, folder_name)
 
     info('Creating executable...')
-    create_executable(folder_name, f"{folder_name}.zip", no_console)
+    create_executable(folder_name, f"{folder_name}.zip", no_console, uac)
 
     if icon_path:
         if os.path.exists(icon_path):
@@ -119,9 +128,6 @@ def main(source_file_name, folder_path, no_console=False, keepfiles=False, icon_
             add_icon_to_executable(folder_name, icon_path)
         else:
             error(f'Icon file not found: {icon_path}')
-    if uac:
-        info('Adding UAC to the executable...')
-        adduac.main(os.path.join(os.getcwd(), f"{folder_name}.exe"))
 
     if not keepfiles:
         info('Cleaning up...')
