@@ -211,8 +211,8 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                 logging.error(f"Error copying package folder {package_folder}: {e}")
         else:
             try:
-                shutil.copy2(origin_path, os.path.join(lib_path, os.path.basename(origin_path)))
-                info(f"Copied module file: {os.path.basename(origin_path)} to lib")
+                shutil.copy2(origin_path, os.path.join(os.path.dirname(lib_path), os.path.basename(origin_path)))
+                info(f"Copied module file: {os.path.basename(origin_path)}")
             except Exception as e:
                 logging.error(f"Error copying module file {origin_path}: {e}")
 
@@ -256,7 +256,6 @@ def main():
     parser.add_argument('-w', '--windowed', action='store_true', help='Disable console', default=False)
     parser.add_argument('-k', '--keepfiles', action='store_true', help='Keep the build files', default=False)
     parser.add_argument('-d', '--debug', action='store_true', help='Enable all debugging tools: --verbose --keepfiles and disable --windowed', default=False)
-    parser.add_argument('-cf', '--copyfolder', action='append', help='(Deprecated) Folder(s) to copy into the build directory.', default=[])
     parser.add_argument('-c', '--copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
     parser.add_argument('--force-refresh', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
     parser.add_argument('-tk', '--use-tkinter', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
@@ -279,7 +278,7 @@ def main():
     if args.use_tkinter:
         copy_tk(folder_path)
 
-    copy_paths = (args.copy or []) + (args.copyfolder or [])
+    copy_paths = (args.copy or [])
     for path in copy_paths:
         name = os.path.basename(path)
         dest_path = os.path.join(folder_path, name)
