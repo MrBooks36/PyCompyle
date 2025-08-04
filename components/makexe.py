@@ -7,16 +7,22 @@ import sys
 from logging import info, error
 from tqdm import tqdm
 
-try:
-    from components import zip_embeder
-except ImportError:
-    import zip_embeder
-
 
 def setup_logging(log_level=logging.INFO):
     """Set up logging configuration."""
     logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
 
+def zip_embeder(name, exe_file, zip_file):
+        setup_logging()
+        output_file = os.path.join(os.getcwd(), f'{name}.exe')
+
+        with open(output_file, 'wb') as output:
+            with open(exe_file, 'rb') as f_exe:
+                output.write(f_exe.read())
+            with open(zip_file, 'rb') as f_zip:
+                output.write(f_zip.read())
+
+        info(f"Combined executable created: {output_file}")
 
 def compress_folder_with_progress(folder_path, output_zip_name):
     """Compresses a folder into a ZIP file with a progress bar."""
@@ -64,7 +70,7 @@ def create_executable(name, zip_path, no_console=False, uac=False):
     
     bootloader = bootloader_map[(no_console, uac)]
     
-    zip_embeder.main(name, os.path.join(exe_folder, bootloader), zip_path)
+    zip_embeder(name, os.path.join(exe_folder, bootloader), zip_path)
 
 
 def download_and_extract_zip(url, extract_to='resource_hacker'):
