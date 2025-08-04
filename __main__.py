@@ -1,5 +1,7 @@
 import os, sys, platform, shutil, subprocess, ast, importlib.util, logging, argparse, fnmatch, json, urllib.request
-from components import getimports, makexe
+try:
+ from PyPackager.components import getimports, makexe # type: ignore
+except: from components import getimports, makexe
 from getpass import getpass
 from datetime import datetime, timedelta, timezone
 from logging import info
@@ -42,6 +44,10 @@ def copy_python_executable(folder_path):
     for dll_phrase in ['python', 'vcruntime']:
         for dll in find_dlls_with_phrase(python_dir, dll_phrase):
             shutil.copy(dll, folder_path)
+    
+    # pypackager.utils special case
+    os.makedirs(os.path.join(folder_path, 'PyPackager'))
+    shutil.copy2(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "util.py"), os.path.join(folder_path, "PyPackager"))         # type: ignore
 
 def copy_tk(folder_path):
     python_folder = os.path.dirname(sys.executable)
@@ -144,7 +150,7 @@ def process_imports(source_file_path, packages, keepfile):
         tmp_file.write('\n'.join(f'try:\n import {imp}\nexcept: pass\n' for imp in imports))
         for package in packages:
             tmp_file.write(f'try:\n import {package}\nexcept: pass\n')
-        tmp_file.write('\nimport sys')
+        tmp_file.write('\nimport sys, os') # do not remove os it is used later down the line
         tmp_file.write(f"\nwith open(r'{tmp_output_path}', 'w') as out_file:")
         tmp_file.write('\n    out_file.write(str([m.__name__ for m in sys.modules.values() if m]))')
 
@@ -183,6 +189,8 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
     for module_name in cleaned_modules:
         if module_name == '__main__':
             continue
+        if module_name == 'PyPackager':
+            continue
 
         spec = importlib.util.find_spec(module_name)
         if spec is None or spec.origin is None or 'built-in' in spec.origin or 'frozen' in spec.origin:
@@ -216,6 +224,9 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
             except Exception as e:
                 logging.error(f"Error copying module file {origin_path}: {e}")
 
+        # tk special case
+        if module_name == "tkinter":
+            copy_tk(folder_path) 
 
         # pywin32_system32 special case
         if module_name == 'pythoncom' and platform.architecture()[0] == '64bit':
@@ -258,7 +269,6 @@ def main():
     parser.add_argument('-d', '--debug', action='store_true', help='Enable all debugging tools: --verbose --keepfiles and disable --windowed', default=False)
     parser.add_argument('-c', '--copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
     parser.add_argument('--force-refresh', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
-    parser.add_argument('-tk', '--use-tkinter', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
     parser.add_argument('-uac', '--uac', action='store_true', help='Add UAC to the EXE', default=False)
     args = parser.parse_args()
 
@@ -270,13 +280,13 @@ def main():
 
     source_file_path = os.path.abspath(args.source_file)
     info(f"Source file: {source_file_path}")
+    if not os.path.exists(source_file_path):
+        logging.critical(f"{source_file_path} does not exist")
+        exit()
     os.chdir(os.path.dirname(source_file_path))
 
     folder_path = setup_destination_folder(args.source_file)
     copy_python_executable(folder_path)
-
-    if args.use_tkinter:
-        copy_tk(folder_path)
 
     copy_paths = (args.copy or [])
     for path in copy_paths:
@@ -301,7 +311,7 @@ def main():
     source_dir = os.path.dirname(source_file_path)
     copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir)
 
-    destination_file_path = os.path.join(folder_path, os.path.basename(source_file_path))
+    destination_file_path = os.path.join(folder_path, "__main__.py")
     shutil.copyfile(source_file_path, destination_file_path)
     info(f"Packaged script copied to {destination_file_path}")
 
