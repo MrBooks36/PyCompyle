@@ -45,7 +45,7 @@ This command packages `my_script.py` into an EXE with a custom icon, enables ver
 ## Contributing
 
 Feel free to submit [issues](github.com/MrBooks36/PyPackager/issues) or pull requests if you find any bugs or have feature requests.  
-If you find a import that is not detected create a [issue](github.com/MrBooks36/PyPackager/issues) with the tag `Oh shit I forgot what I called it I'll change this before I commit it`
+If you find a import that is not detected create a [issue](github.com/MrBooks36/PyPackager/issues) with the label `linked imports enhancement`
 
 ## License
 
