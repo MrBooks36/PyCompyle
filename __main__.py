@@ -1,6 +1,6 @@
 import os, sys, platform, shutil, subprocess, ast, importlib.util, logging, argparse, fnmatch, json, urllib.request
 try:
- from PyPackager.components import getimports, makexe # type: ignore
+ from PyCompyle.components import getimports, makexe # type: ignore
 except: from components import getimports, makexe
 from getpass import getpass
 from datetime import datetime, timedelta, timezone
@@ -45,9 +45,9 @@ def copy_python_executable(folder_path):
         for dll in find_dlls_with_phrase(python_dir, dll_phrase):
             shutil.copy(dll, folder_path)
     
-    # pypackager.utils special case
-    os.makedirs(os.path.join(folder_path, 'PyPackager'))
-    shutil.copy2(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "util.py"), os.path.join(folder_path, "PyPackager"))         # type: ignore
+    # PyCompyle.utils special case
+    os.makedirs(os.path.join(folder_path, 'PyCompyle'))
+    shutil.copy2(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "util.py"), os.path.join(folder_path, "PyCompyle"))         # type: ignore
 
 def copy_tk(folder_path):
     python_folder = os.path.dirname(sys.executable)
@@ -56,10 +56,10 @@ def copy_tk(folder_path):
     
 def load_linked_imports(force=False):
     local_appdata = os.environ.get("LOCALAPPDATA", "")
-    cache_dir = os.path.join(local_appdata, "PyPackager.cache")
+    cache_dir = os.path.join(local_appdata, "PyCompyle.cache")
     cache_file = os.path.join(cache_dir, "linked_imports.json")
     timestamp_file = os.path.join(cache_dir, "linked_imports.timestamp")
-    github_url = "https://raw.githubusercontent.com/MrBooks36/PyPackager/main/linked_imports.json"
+    github_url = "https://raw.githubusercontent.com/MrBooks36/PyCompyle/main/linked_imports.json"
     refresh_interval = timedelta(hours=24)
     local_json = os.path.join(os.path.dirname(__file__), "linked_imports.json")
 
@@ -189,7 +189,7 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
     for module_name in cleaned_modules:
         if module_name == '__main__':
             continue
-        if module_name == 'PyPackager':
+        if module_name == 'PyCompyle':
             continue
 
         spec = importlib.util.find_spec(module_name)
@@ -258,7 +258,7 @@ def copy_folder_with_excludes(src, dst, exclude_patterns):
 def main():
     validate_platform()
 
-    parser = argparse.ArgumentParser(description="Package a Python script into a EXE with its dependencies.", prog='python -m PyPackager')
+    parser = argparse.ArgumentParser(description="Package a Python script into a EXE with its dependencies.", prog='python -m PyCompyle')
     parser.add_argument('source_file', help='The Python script to package.')
     parser.add_argument('--noconfirm', '-nc', action='store_true', help='Skip confirmation for wrapping the exe', default=False)
     parser.add_argument('--icon', '-i', help='Icon for the created EXE', default=False)

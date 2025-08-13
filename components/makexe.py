@@ -96,7 +96,7 @@ def download_and_extract_zip(url, extract_to='resource_hacker'):
 def add_icon_to_executable(name, icon_path):
     """Adds an icon to an executable using Resource Hacker."""
     name = os.path.abspath(name)
-    cache_path = os.path.expandvars('%LOCALAPPDATA%\\PyPackager.cache')
+    cache_path = os.path.expandvars('%LOCALAPPDATA%\\PyCompyle.cache')
     os.makedirs(cache_path, exist_ok=True)
     info(f'Cache path: {cache_path}')
 
