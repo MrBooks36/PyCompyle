@@ -15,15 +15,15 @@ def get_site_packages_path():
     raise Exception("site-packages path not found")
 
 def check_if_already_installed():
-    return os.path.exists(os.path.join(get_site_packages_path(), "PyPackager"))
+    return os.path.exists(os.path.join(get_site_packages_path(), "PyCompyle"))
 
 def uninstall():
-    target = os.path.join(get_site_packages_path(), "PyPackager")
+    target = os.path.join(get_site_packages_path(), "PyCompyle")
     if os.path.exists(target):
         shutil.rmtree(target)
-        print("Uninstalled PyPackager")
+        print("Uninstalled PyCompyle")
     else:
-        print("PyPackager is not installed.")
+        print("PyCompyle is not installed.")
 
 def get_latest_release(repo_url):
     api_url = f"https://api.github.com/repos/{repo_url}/releases/latest"
@@ -44,13 +44,13 @@ def download_and_extract_zip(zip_url, extract_to):
         req = Request(zip_url, headers=headers)
         with urlopen(req) as response:
             with zipfile.ZipFile(io.BytesIO(response.read())) as z:
-                temp_dir = os.path.join(extract_to, "__pypackager_temp__")
+                temp_dir = os.path.join(extract_to, "__PyCompyle_temp__")
                 if os.path.exists(temp_dir):
                     shutil.rmtree(temp_dir)
                 z.extractall(temp_dir)
 
                 inner_folder = next(os.scandir(temp_dir)).path
-                final_path = os.path.join(extract_to, "PyPackager")
+                final_path = os.path.join(extract_to, "PyCompyle")
                 if os.path.exists(final_path):
                     shutil.rmtree(final_path)
                 shutil.move(inner_folder, final_path)
@@ -77,24 +77,24 @@ def install_latest_release(repo_url):
     print(f"Site-packages path: {site_packages_path}")
     zip_url = get_latest_release(repo_url)
     download_and_extract_zip(zip_url, site_packages_path)
-    install_requirements(os.path.join(site_packages_path, "PyPackager"))
-    print("Successfully installed PyPackager")
+    install_requirements(os.path.join(site_packages_path, "PyCompyle"))
+    print("Successfully installed PyCompyle")
 
 if __name__ == "__main__":
-    repository = "MrBooks36/PyPackager"
+    repository = "MrBooks36/PyCompyle"
 
     try:
         if check_if_already_installed():
-            choice = input("PyPackager is already installed. [R]emove, [U]pdate/Repair, [Any other button] Cancel: ").lower()
+            choice = input("PyCompyle is already installed. [R]emove, [U]pdate/Repair, [Any other button] Cancel: ").lower()
             if choice == 'r':
                 uninstall()
             elif choice == 'u':
-                print("Reinstalling PyPackager...")
+                print("Reinstalling PyCompyle...")
                 install_latest_release(repository)
             else:
                 print("Canceled.")
         else:
-            print("Installing PyPackager...")
+            print("Installing PyCompyle...")
             install_latest_release(repository)
     except Exception as e:
         print(f"An error occurred: {e}")

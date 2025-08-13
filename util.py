@@ -1,4 +1,4 @@
-# utilities for scripts to interact with the core structure of pypackager
+# utilities for scripts to interact with the core structure of PyCompyle
 global pythonexe
 
 
