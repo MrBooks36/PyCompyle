@@ -9,6 +9,7 @@ __pycache__/
 # Testing
 *test*
 localjson
+tmp*
 
 # Distribution / packaging
 .Python
