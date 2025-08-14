@@ -2,9 +2,6 @@ import ast
 import os
 import logging
 
-def setup_logging(verbose=False):
-    log_level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
 
 def get_imports_from_file(file_path, module_root):
     imports = set()
@@ -79,7 +76,3 @@ def recursive_imports(entry_file, visited=None, base_dir=None):
 
     return top_level
 
-if __name__ == "__main__":
-    import sys
-    path = sys.argv[1] if len(sys.argv) > 1 else "test.py"
-    print(sorted(recursive_imports(path)))
