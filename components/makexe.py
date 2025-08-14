@@ -2,7 +2,10 @@ import os
 import shutil
 import logging
 import zipfile
-import requests
+try:
+ from components.download import download_and_extract_zip
+except ImportError:
+ from download import download_and_extract_zip  # Fallback for local imports
 import sys
 from logging import info, error
 from tqdm import tqdm
@@ -73,24 +76,6 @@ def create_executable(name, zip_path, no_console=False, uac=False):
     zip_embeder(name, os.path.join(exe_folder, bootloader), zip_path)
 
 
-def download_and_extract_zip(url, extract_to='resource_hacker'):
-    """Downloads and extracts a zip file from a given URL."""
-    os.makedirs(extract_to, exist_ok=True)
-    extract_to= os.path.join(extract_to, 'resource_hacker')
-    os.makedirs(extract_to, exist_ok=True)
-
-    zip_filename = os.path.join(extract_to, 'resource_hacker.zip')
-    response = requests.get(url, headers={"User-Agent": "XY"})
-    response.raise_for_status()  # Ensure the request was successful
-
-    with open(zip_filename, 'wb') as file:
-        file.write(response.content)
-
-    with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
-        zip_ref.extractall(extract_to)
-
-    os.remove(zip_filename)
-    info(f"Files extracted to: {extract_to}")
 
 
 def add_icon_to_executable(name, icon_path):
@@ -109,7 +94,7 @@ def add_icon_to_executable(name, icon_path):
     os.system(f'cmd /c "{command}"')
 
 
-def main(source_file_name, folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False):
+def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False):
     """Main function to execute the operations."""
     setup_logging()
     folder_name = os.path.basename(folder_path).replace('.build', '')
@@ -119,8 +104,6 @@ def main(source_file_name, folder_path, no_console=False, keepfiles=False, icon_
     delete_pycache(os.getcwd())
 
     info('Writing python args')
-    with open(os.path.join(folder_path, 'thefilename'), 'w') as file:
-        file.write(source_file_name)
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
         file.write('Dlls\nLib')
     compress_folder_with_progress(folder_path, folder_name)
