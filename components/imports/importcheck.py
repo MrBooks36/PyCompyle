@@ -7,7 +7,7 @@ except: import getimports
 try:
  from components import download
 except ImportError:
- from components import download
+ import download
 
 def load_linked_imports(force=False):
     local_appdata = os.environ.get("LOCALAPPDATA", "")
@@ -16,7 +16,7 @@ def load_linked_imports(force=False):
     timestamp_file = os.path.join(cache_dir, "linked_imports.timestamp")
     github_url = "https://raw.githubusercontent.com/MrBooks36/PyCompyle/main/linked_imports.json"
     refresh_interval = timedelta(hours=24)
-    local_json = os.path.join(os.path.dirname(__file__), "linked_imports.json")
+    local_json = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "linked_imports.json") # type: ignore
 
     os.makedirs(cache_dir, exist_ok=True)
 
@@ -35,7 +35,7 @@ def load_linked_imports(force=False):
     if needs_refresh:
         download.download_and_update(github_url, cache_dir, cache_file, timestamp_file)
 
-    if os.path.exists(local_json) and os.path.exists(os.path.join(os.path.dirname(__file__), "localjson")):
+    if os.path.exists(local_json) and os.path.exists(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "localjson")): # type: ignore
         try:
             with open(local_json, "r", encoding="utf-8") as f:
                 logging.info("Using local linked_imports.json (same folder as script)")
@@ -86,7 +86,6 @@ def run_import_checker(imports, packages, source_dir, tmp_script_path, tmp_outpu
     original_dir = os.getcwd()
     try:
         os.chdir(source_dir)
-        info('Running import checker')
         subprocess.run([sys.executable, tmp_script_path], check=True)
     finally:
         os.chdir(original_dir)

@@ -1,5 +1,7 @@
 {
   "_comment": "This JSON file list contains Python modules that are linked to other modules might have not been captured in complex scripts.",
+  "builtins": ["importlib"],
+  "importlib": ["warnings", "types"],
   "logging": ["queue", "pickle", "copy"],
   "urllib": ["nturl2path", "base64", "quopri", "email", "hashlib", "http", "bisect", "tempfile", "ipaddress"],
   "email": ["datetime", "calendar", "string", "random", "socket"],

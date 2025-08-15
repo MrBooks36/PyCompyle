@@ -1,11 +1,13 @@
 import os
+import subprocess
 import shutil
 import logging
 import zipfile
+import time
 try:
  from components.download import download_and_extract_zip
 except ImportError:
- from download import download_and_extract_zip  # Fallback for local imports
+ from download import download_and_extract_zip
 import sys
 from logging import info, error
 from tqdm import tqdm
@@ -60,7 +62,7 @@ def delete_pycache(start_dir):
     info(f"Total '__pycache__' folders deleted: {deleted_count}")
 
 
-def create_executable(name, zip_path, no_console=False, uac=False):
+def create_executable(name, zip_path, no_console=False, uac=False, folder=False, folder_path=str()):
     """Creates an executable file using the zip_embeder."""
     exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs')  # type: ignore
     
@@ -72,13 +74,14 @@ def create_executable(name, zip_path, no_console=False, uac=False):
     }
     
     bootloader = bootloader_map[(no_console, uac)]
-    
-    zip_embeder(name, os.path.join(exe_folder, bootloader), zip_path)
+    if not folder: zip_embeder(name, os.path.join(exe_folder, bootloader), zip_path)
+    else: shutil.copy2(src=os.path.join(exe_folder, bootloader), dst=os.path.join(folder_path, f'{name}.exe'))
 
 
 
 
-def add_icon_to_executable(name, icon_path):
+
+def add_icon_to_executable(name, icon_path, folder):
     """Adds an icon to an executable using Resource Hacker."""
     name = os.path.abspath(name)
     cache_path = os.path.expandvars('%LOCALAPPDATA%\\PyCompyle.cache')
@@ -90,11 +93,12 @@ def add_icon_to_executable(name, icon_path):
         download_and_extract_zip('https://www.angusj.com/resourcehacker/resource_hacker.zip', cache_path)
 
     r_hacker_path = os.path.join(cache_path, 'resource_hacker', 'ResourceHacker.exe')
-    command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
-    os.system(f'cmd /c "{command}"')
+    if folder: command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
+    else: command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
+    subprocess.run(command, shell=True)
 
 
-def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False):
+def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False):
     """Main function to execute the operations."""
     setup_logging()
     folder_name = os.path.basename(folder_path).replace('.build', '')
@@ -106,19 +110,29 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
     info('Writing python args')
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
         file.write('Dlls\nLib')
-    compress_folder_with_progress(folder_path, folder_name)
 
+    if not folder: compress_folder_with_progress(folder_path, folder_name)
+    else: 
+        if os.path.exists(folder_name):
+            shutil.rmtree(folder_name)
+        try:
+            os.rename(folder_path, folder_name) 
+        except:
+            time.sleep(3)
+            os.rename(folder_path, folder_name)
+        finally:
+            folder_path = folder_path.replace('.build', '')                 
     info('Creating executable...')
-    create_executable(folder_name, f"{folder_name}.zip", no_console, uac)
+    create_executable(folder_name, f"{folder_name}.zip", no_console, uac, folder, folder_path)
 
     if icon_path:
         if os.path.exists(icon_path):
             info(f'Adding icon: {icon_path}')
-            add_icon_to_executable(folder_name, icon_path)
+            add_icon_to_executable(folder_name, icon_path, folder)
         else:
             error(f'Icon file not found: {icon_path}')
 
-    if not keepfiles:
+    if not keepfiles and not folder:
         info('Cleaning up...')
         shutil.rmtree(folder_path)
         os.remove(f"{folder_name}.zip")
