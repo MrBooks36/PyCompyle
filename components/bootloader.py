@@ -1,5 +1,5 @@
 from os import makedirs, environ, remove
-from os.path import join, exists, basename
+from os.path import join, exists, basename, dirname
 from sys import argv
 from shutil import rmtree
 from zipfile import ZipFile
@@ -40,16 +40,15 @@ def extract_embedded_zip(output_dir):
 
     zip_start = find_embedded_zip(data)
     if zip_start == -1:
-        print("No embedded ZIP archive found.")
-        return
+        return False
 
     with open(zip_path, 'wb') as zip_file:
         zip_file.write(data[zip_start:])
 
     with ZipFile(zip_path, 'r') as zip_ref:
-        zip_ref.extractall(output_dir)
+        zip_ref.extractall(path=output_dir)
     remove(zip_path)
-
+    return True
 
 
 def run_extracted_executable(output_dir):
@@ -57,24 +56,26 @@ def run_extracted_executable(output_dir):
     script_path = join(output_dir, "__main__.py")
 
     new_text = (
-        f"import sys\n"
+        "import sys\n"
         f"sys.argv[0] = '{argv[0].replace('\\', '/')}'\n"
         f"sys.executable = '{argv[0].replace('\\', '/')}'\n"
         f"sys.path.append(r'{output_dir}')\n"
     )
 
     try:
-        with open(script_path, 'r') as original_file:
+        with open(script_path, 'r', encoding='utf-8') as original_file:
             original_content = original_file.read()
 
-        with open(script_path, 'w') as modified_file:
-            modified_file.write(new_text + original_content)
+        # Check if sys modifications are already in the script
+        if new_text.strip() not in original_content:
+            with open(script_path, 'w', encoding='utf-8') as modified_file:
+                modified_file.write(new_text + original_content)
+
     except FileNotFoundError:
         print(f"Script path '{script_path}' not found.")
         return
 
     additional_args = argv[1:]
-    #run('cls', shell=True)
     run([python_executable, '-B', output_dir] + additional_args)
 
 
@@ -82,8 +83,7 @@ def cleanup_directory(output_dir):
     try:
         rmtree(output_dir)
         return True
-    except Exception as e:
-        print(f"Failed to remove directory: {e}. Will automatically be removed on next login.")
+    except Exception:
         return False
 
 
@@ -120,20 +120,20 @@ del "%~f0"
 Set WshShell = CreateObject("WScript.Shell")
 WshShell.Run "cmd /c call \"{bat_path}\"", 0, False''')
 
-    print(f"Scheduled deletion: batch in '{bat_path}', VBScript in Startup '{vbs_path}'")
-
-
 
 def main():
-    print('Loading...')
-    output_dir = generate_unique_output_dir()
-    extract_embedded_zip(output_dir)
-    schedule_startup_folder_deletion(output_dir)
-    run_extracted_executable(output_dir)
-
-    if cleanup_directory(output_dir):
+ output_dir = generate_unique_output_dir()
+ if extract_embedded_zip(output_dir):
+     schedule_startup_folder_deletion(output_dir)
+     run_extracted_executable(output_dir)
+     if cleanup_directory(output_dir):
         remove(vbs_path)
         remove(bat_path)
+ elif exists(join(dirname(argv[0]), '__main__.py')):
+     folder = dirname(argv[0])
+     run_extracted_executable(folder)
+ else:
+     print('No emmbeded zip or __main__.py found')
 
 
 if __name__ == "__main__":
