@@ -2,7 +2,7 @@ import os
 import subprocess
 import shutil
 import logging
-import zipfile
+import pyzipper
 import time
 try:
  from components.download import download_and_extract_zip
@@ -29,19 +29,30 @@ def zip_embeder(name, exe_file, zip_file):
 
         info(f"Combined executable created: {output_file}")
 
-def compress_folder_with_progress(folder_path, output_zip_name):
-    """Compresses a folder into a ZIP file with a progress bar."""
-    total_size = sum(os.path.getsize(os.path.join(root, file))
-                     for root, _, files in os.walk(folder_path) for file in files)
+
+def compress_folder_with_progress(folder_path, output_zip_name, password: str, compression_level=6):
+    total_size = sum(
+        os.path.getsize(os.path.join(root, file))
+        for root, _, files in os.walk(folder_path)
+        for file in files
+    )
 
     with tqdm(total=total_size, unit='B', unit_scale=True, desc='INFO: Compressing') as pbar, \
-         zipfile.ZipFile(f"{output_zip_name}.zip", 'w', zipfile.ZIP_DEFLATED) as zipf:
+         pyzipper.AESZipFile(
+             f"{output_zip_name}.zip",
+             'w',
+             compression=pyzipper.ZIP_DEFLATED,
+             compresslevel=compression_level,
+             encryption=pyzipper.WZ_AES
+         ) as zipf:
+
+        zipf.setpassword(password.encode('utf-8'))
 
         for root, _, files in os.walk(folder_path):
             for file in files:
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, folder_path)
-                zipf.write(file_path, arcname=arcname)
+                zipf.write(file_path, arcname)
                 pbar.update(os.path.getsize(file_path))
 
 
@@ -54,7 +65,6 @@ def delete_pycache(start_dir):
             pycache_path = os.path.join(root, '__pycache__')
             try:
                 shutil.rmtree(pycache_path)
-                info(f"Deleted folder: {pycache_path}")
                 deleted_count += 1
             except Exception as e:
                 error(f"Error deleting {pycache_path}: {e}")
@@ -98,7 +108,7 @@ def add_icon_to_executable(name, icon_path, folder):
     subprocess.run(command, shell=True)
 
 
-def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False):
+def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False):
     """Main function to execute the operations."""
     setup_logging()
     folder_name = os.path.basename(folder_path).replace('.build', '')
@@ -111,7 +121,7 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
         file.write('Dlls\nLib')
 
-    if not folder: compress_folder_with_progress(folder_path, folder_name)
+    if not folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle')
     else: 
         if os.path.exists(folder_name):
             shutil.rmtree(folder_name)
@@ -132,7 +142,12 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
         else:
             error(f'Icon file not found: {icon_path}')
 
+    if zip: compress_folder_with_progress(folder_path, folder_name)       
+
     if not keepfiles and not folder:
         info('Cleaning up...')
         shutil.rmtree(folder_path)
         os.remove(f"{folder_name}.zip")
+    if zip and not keepfiles:
+        info('Cleaning up...')
+        shutil.rmtree(folder_path)
