@@ -54,7 +54,8 @@ def main():
     parser = argparse.ArgumentParser(description="Package a Python script into a EXE with its dependencies.", prog='python -m PyCompyle')
     parser.add_argument('source_file', help='The Python script to package.')
     parser.add_argument('--noconfirm', '-nc', action='store_true', help='Build for a folder instead of a onefile exe', default=False)
-    parser.add_argument('--folder', '-f', action='store_true', help='Skip confirmation for wrapping the exe', default=False)
+    parser.add_argument('--folder', '-f', action='store_true', help='Build to a folder instead of a onefile exe', default=False)
+    parser.add_argument('--zip', '-z', action='store_true', help='Build to a zip instead of a onefile exe (zip version of --folder)', default=False)
     parser.add_argument('--icon', '-i', help='Icon for the created EXE', default=False)
     parser.add_argument('--package', '-p', action='append', help='Include a package that might have been missed.', default=[])
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output.', default=False)
@@ -70,7 +71,10 @@ def main():
         args.verbose = True
         args.keepfiles = True
         args.folder = True
+        args.zip = False
         args.windowed = False
+    if args.zip:
+        args.folder = True    
     setup_logging(args.verbose)
 
     source_file_path = os.path.abspath(args.source_file)
@@ -113,7 +117,7 @@ def main():
     info(f"Packaging complete: {folder_path}")
     if not args.noconfirm:
         getpass('Press Enter to continue wrapping the EXE')
-    makexe.main(folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder)
+    makexe.main(folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip)
 
 if __name__ == "__main__":
     main()
