@@ -53,28 +53,31 @@ def main():
 
     parser = argparse.ArgumentParser(description="Package a Python script into a EXE with its dependencies.", prog='python -m PyCompyle')
     parser.add_argument('source_file', help='The Python script to package.')
-    parser.add_argument('--noconfirm', '-nc', action='store_true', help='Build for a folder instead of a onefile exe', default=False)
+    parser.add_argument('--noconfirm', '-nc', action='store_true', help='Skip confirmation for wrapping the exe', default=False)
     parser.add_argument('--folder', '-f', action='store_true', help='Build to a folder instead of a onefile exe', default=False)
-    parser.add_argument('--zip', '-z', action='store_true', help='Build to a zip instead of a onefile exe (zip version of --folder)', default=False)
-    parser.add_argument('--icon', '-i', help='Icon for the created EXE', default=False)
+    parser.add_argument('--zip', '-zip', action='store_true', help='Build to a zip instead of a onefile exe (Zip version of --folder)', default=False)
+    parser.add_argument('--bat', '-bat', action='store_true', help='Use a .bat file for starting the built script instead of a exe for faster start times (Automatically implies --folder)', default=False)
+    parser.add_argument('--icon', '-icon', help='Icon for the created EXE', default=False)
+    parser.add_argument('--uac', '-uac', action='store_true', help='Add UAC to the EXE', default=False)
     parser.add_argument('--package', '-p', action='append', help='Include a package that might have been missed.', default=[])
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output.', default=False)
     parser.add_argument('--windowed', '-w', action='store_true', help='Disable console', default=False)
     parser.add_argument('--keepfiles', '-k', action='store_true', help='Keep the build files', default=False)
-    parser.add_argument( '--debug', '-d', action='store_true', help='Enable all debugging tools: --verbose --keepfiles --folder and disable --windowed', default=False)
-    parser.add_argument('--copy','-c', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
+    parser.add_argument('--copy', '-copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
+    parser.add_argument('--disable-compile', action='store_true', help='Disable compiling Lib to .pyc files (use for debugging)', default=False)
     parser.add_argument('--force-refresh', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
-    parser.add_argument('-uac', '--uac', action='store_true', help='Add UAC to the EXE', default=False)
+    parser.add_argument( '--debug', action='store_true', help='Enable all debugging tools: --verbose --keepfiles --folder --disable-compile and disables --windowed and --zip', default=False)
     args = parser.parse_args()
 
     if args.debug:
         args.verbose = True
         args.keepfiles = True
         args.folder = True
+        args.disable_compile = True
         args.zip = False
         args.windowed = False
-    if args.zip:
-        args.folder = True    
+    if args.zip or args.bat:
+        args.folder = True       
     setup_logging(args.verbose)
 
     source_file_path = os.path.abspath(args.source_file)
@@ -117,7 +120,7 @@ def main():
     info(f"Packaging complete: {folder_path}")
     if not args.noconfirm:
         getpass('Press Enter to continue wrapping the EXE')
-    makexe.main(folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip)
+    makexe.main(folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip, bat=args.bat, disable_compiling=args.disable_compile)
 
 if __name__ == "__main__":
     main()

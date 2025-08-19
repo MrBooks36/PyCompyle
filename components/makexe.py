@@ -1,14 +1,8 @@
-import os
-import subprocess
-import shutil
-import logging
-import pyzipper
-import time
+import os, subprocess, py_compile, shutil, logging, pyzipper, time, tempfile, sys
 try:
  from components.download import download_and_extract_zip
 except ImportError:
  from download import download_and_extract_zip
-import sys
 from logging import info, error
 from tqdm import tqdm
 
@@ -30,12 +24,15 @@ def zip_embeder(name, exe_file, zip_file):
         info(f"Combined executable created: {output_file}")
 
 
-def compress_folder_with_progress(folder_path, output_zip_name, password: str, compression_level=6):
+
+def compress_folder_with_progress(folder_path, output_zip_name, password=None, compression_level=6):
     total_size = sum(
         os.path.getsize(os.path.join(root, file))
         for root, _, files in os.walk(folder_path)
         for file in files
     )
+    
+    encryption = pyzipper.WZ_AES if password else None
 
     with tqdm(total=total_size, unit='B', unit_scale=True, desc='INFO: Compressing') as pbar, \
          pyzipper.AESZipFile(
@@ -43,10 +40,11 @@ def compress_folder_with_progress(folder_path, output_zip_name, password: str, c
              'w',
              compression=pyzipper.ZIP_DEFLATED,
              compresslevel=compression_level,
-             encryption=pyzipper.WZ_AES
+             encryption=encryption
          ) as zipf:
 
-        zipf.setpassword(password.encode('utf-8'))
+        if password:
+            zipf.setpassword(password.encode('utf-8'))
 
         for root, _, files in os.walk(folder_path):
             for file in files:
@@ -88,7 +86,44 @@ def create_executable(name, zip_path, no_console=False, uac=False, folder=False,
     else: shutil.copy2(src=os.path.join(exe_folder, bootloader), dst=os.path.join(folder_path, f'{name}.exe'))
 
 
+def compile_and_replace_py_to_pyc(directory):
+    for root, _, files in os.walk(directory):
+        for file in files:
+            if file.endswith('.py'):
+                py_file_path = os.path.join(root, file)
 
+                # Specify the base directory for temporary files
+                windows_temp_dir = r'C:\Windows\Temp'
+                
+                # Create a temporary directory within C:\Windows\Temp
+                temp_dir = tempfile.mkdtemp(dir=windows_temp_dir)
+                try:
+                    temp_file_path = os.path.join(temp_dir, file)
+
+                    # Copy the .py file to the temporary directory
+                    shutil.copy2(py_file_path, temp_file_path)
+
+                    # Prepare the destination .pyc file path
+                    pyc_file_path = py_file_path + 'c'
+
+                    try:
+                        # Use relative path for display file name
+                        display_file_path = os.path.relpath(py_file_path, directory)
+
+                        # Compile the .py file in the temporary directory
+                        py_compile.compile(temp_file_path, cfile=pyc_file_path, dfile=display_file_path, doraise=True)
+
+                        # Remove the original .py file after successful compilation
+                        os.remove(py_file_path)
+
+                    except py_compile.PyCompileError as compile_error:
+                        print(f"Failed to compile {py_file_path}: {compile_error}")
+                    except Exception as e:
+                        print(f"An error occurred with {py_file_path}: {e}")
+
+                finally:
+                    # Clean up the temporary directory
+                    shutil.rmtree(temp_dir)
 
 
 def add_icon_to_executable(name, icon_path, folder):
@@ -108,7 +143,7 @@ def add_icon_to_executable(name, icon_path, folder):
     subprocess.run(command, shell=True)
 
 
-def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False):
+def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False, bat=False, disable_compiling=False):
     """Main function to execute the operations."""
     setup_logging()
     folder_name = os.path.basename(folder_path).replace('.build', '')
@@ -116,6 +151,9 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
     info('Removing __pycache__ directories...')
     delete_pycache(folder_path)
     delete_pycache(os.getcwd())
+    if not disable_compiling:
+     info("Compiling code to PYC files for speed")
+     compile_and_replace_py_to_pyc(os.path.join(folder_path, "Lib"))
 
     info('Writing python args')
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
@@ -131,9 +169,14 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
             time.sleep(3)
             os.rename(folder_path, folder_name)
         finally:
-            folder_path = folder_path.replace('.build', '')                 
-    info('Creating executable...')
-    create_executable(folder_name, f"{folder_name}.zip", no_console, uac, folder, folder_path)
+            folder_path = folder_path.replace('.build', '')      
+    if bat:
+        info('Creating Batchfile...')
+        with open(os.path.join(folder_path, f'{folder_name}.bat'), 'w') as file:
+            file.write('@echo off\n%~dp0\\python.exe %~dp0\\__main__.py')
+    else:
+        info('Creating executable...')
+        create_executable(folder_name, f"{folder_name}.zip", no_console, uac, folder, folder_path)
 
     if icon_path:
         if os.path.exists(icon_path):

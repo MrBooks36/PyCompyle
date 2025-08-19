@@ -147,7 +147,7 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
         if module_name == 'pythoncom':
             copy_folder_with_excludes(
                 os.path.join(os.path.dirname(spec.origin), 'pywin32_system32'),
-                os.path.join(folder_path, 'pywin32_system32'),
+                os.path.join(folder_path, "Lib",'pywin32_system32'),
                 exclude_patterns=exclude_pattens)
 
 def should_exclude(name, patterns):
