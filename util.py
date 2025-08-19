@@ -1,6 +1,8 @@
 # utilities for scripts to interact with the core structure of PyCompyle
 global pythonexe
 
+__all__ = ['pythonexe']
+
 
 def _get_pythonexe():
     import os, sys

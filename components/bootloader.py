@@ -57,8 +57,8 @@ def run_extracted_executable(output_dir):
 
     new_text = (
         "import sys\n"
-        f"sys.argv[0] = '{argv[0].replace('\\', '/')}'\n"
-        f"sys.executable = '{argv[0].replace('\\', '/')}'\n"
+        f"sys.argv[0] = 'r{argv[0]}'\n"
+        f"sys.executable = r'{argv[0]}'\n"
         f"sys.path.append(r'{output_dir}')\n"
     )
 
