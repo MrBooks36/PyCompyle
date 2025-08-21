@@ -1,11 +1,14 @@
-import os, subprocess, py_compile, shutil, logging, pyzipper, time, tempfile, sys
+import os, subprocess, py_compile, shutil, logging, time, tempfile, sys
 try:
  from components.download import download_and_extract_zip
+ from components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx
 except ImportError:
  from download import download_and_extract_zip
+ from compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx
 from logging import info, error
-from tqdm import tqdm
 
+MAX_RETRIES = 5
+RETRY_DELAY = 2  # seconds
 
 def setup_logging(log_level=logging.INFO):
     """Set up logging configuration."""
@@ -22,37 +25,6 @@ def zip_embeder(name, exe_file, zip_file):
                 output.write(f_zip.read())
 
         info(f"Combined executable created: {output_file}")
-
-
-
-def compress_folder_with_progress(folder_path, output_zip_name, password=None, compression_level=6):
-    total_size = sum(
-        os.path.getsize(os.path.join(root, file))
-        for root, _, files in os.walk(folder_path)
-        for file in files
-    )
-    
-    encryption = pyzipper.WZ_AES if password else None
-
-    with tqdm(total=total_size, unit='B', unit_scale=True, desc='INFO: Compressing') as pbar, \
-         pyzipper.AESZipFile(
-             f"{output_zip_name}.zip",
-             'w',
-             compression=pyzipper.ZIP_DEFLATED,
-             compresslevel=compression_level,
-             encryption=encryption
-         ) as zipf:
-
-        if password:
-            zipf.setpassword(password.encode('utf-8'))
-
-        for root, _, files in os.walk(folder_path):
-            for file in files:
-                file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, folder_path)
-                zipf.write(file_path, arcname)
-                pbar.update(os.path.getsize(file_path))
-
 
 def delete_pycache(start_dir):
     """Deletes __pycache__ directories recursively."""
@@ -143,7 +115,7 @@ def add_icon_to_executable(name, icon_path, folder):
     subprocess.run(command, shell=True)
 
 
-def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False, bat=False, disable_compiling=False):
+def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False, bat=False, disable_compiling=False, disable_compressing=False, disable_password= False):
     """Main function to execute the operations."""
     setup_logging()
     folder_name = os.path.basename(folder_path).replace('.build', '')
@@ -157,19 +129,32 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
 
     info('Writing python args')
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
-        file.write('Dlls\nLib')
+        file.write('Dlls\nLib\nLib_c.zip')
+    
 
-    if not folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle')
-    else: 
+    if not disable_compressing:
+        compress_with_upx(folder_path)
+        compress_top_level_pyc(os.path.join(folder_path, "Lib"), output_name=os.path.join(folder_path, "Lib_c"))
+    
+    if not folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not disable_password else None)
+    else:
+     try:
+        shutil.rmtree(folder_name)
+     except Exception as e:
         if os.path.exists(folder_name):
-            shutil.rmtree(folder_name)
-        try:
-            os.rename(folder_path, folder_name) 
-        except:
-            time.sleep(3)
-            os.rename(folder_path, folder_name)
-        finally:
-            folder_path = folder_path.replace('.build', '')      
+            error(f"Failed to remove existing folder {folder_name}: {e}")
+
+     for attempt in range(1, MAX_RETRIES + 1):
+      try:
+        os.rename(folder_path, folder_name)
+        folder_path = folder_path.replace('.build', '')  # update only after successful rename
+        break
+      except OSError as e:
+        print(f"Attempt {attempt} failed to rename {folder_path} -> {folder_name}: {e}")
+        if attempt == MAX_RETRIES:
+            logging.critical(f"Failed to rename {folder_path} after {MAX_RETRIES} attempts. Exiting.")
+            sys.exit(1)
+        time.sleep(RETRY_DELAY)
     if bat:
         info('Creating Batchfile...')
         with open(os.path.join(folder_path, f'{folder_name}.bat'), 'w') as file:

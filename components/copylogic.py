@@ -32,9 +32,33 @@ def copy_python_executable(folder_path):
     shutil.copy2(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "util.py"), os.path.join(folder_path, "PyCompyle"))         # type: ignore
 
 def copy_tk(folder_path):
-    python_folder = os.path.dirname(sys.executable)
-    shutil.copytree(os.path.join(python_folder, 'tcl'), os.path.join(folder_path, 'tcl'))       
-    info(f'Copied Tcl folder to {folder_path}')
+    try:
+        python_folder = os.path.dirname(sys.executable)
+        tcl_directory = os.path.join(python_folder, 'tcl')
+
+        # Check if the path exists to avoid errors.
+        if not os.path.exists(tcl_directory):
+            print(f"Directory does not exist: {tcl_directory}")
+            return
+
+        # Locate and copy directories that match the phrase
+        for phrase in ['tk', 'tcl']:
+            for item in os.listdir(tcl_directory):
+                item_path = os.path.join(tcl_directory, item)
+                # Check if item is a directory and matches the phrase
+                if os.path.isdir(item_path) and phrase.lower() in item.lower():
+                    destination_path = os.path.join(folder_path, item)
+                    try:
+                        if os.path.exists(destination_path):
+                            shutil.rmtree(destination_path)
+                        shutil.copytree(item_path, destination_path)
+                    except IOError as e:
+                        print(f"Error copying {item_path} to {destination_path}: {e}")
+
+        info(f'Copied matching directories to {folder_path}')
+
+    except Exception as e:
+        print(f"An unexpected error occurred in copy_tk: {e}")
       
 def copy_linked_imports(linked_imports_file, folder_path, lib_path):
     """Copy specified linked imports to the build directory."""
