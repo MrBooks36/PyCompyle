@@ -38,8 +38,9 @@ def check_system():
 
 def validate_platform():
     if not check_system():
-        print("This script is designed to run only on Windows 64-bit. ")
+        print("This script is designed to run only on Windows 64-bit.")
         sys.exit(1)
+
 def setup_destination_folder(source_file):
     destination_folder = os.path.abspath(source_file.replace('.py', '.build'))
     if os.path.exists(destination_folder):
@@ -65,20 +66,26 @@ def main():
     parser.add_argument('--keepfiles', '-k', action='store_true', help='Keep the build files', default=False)
     parser.add_argument('--copy', '-copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
     parser.add_argument('--disable-compile', action='store_true', help='Disable compiling Lib to .pyc files (use for debugging)', default=False)
+    parser.add_argument('--disable-compressing', action='store_true', help='Disable compressing binary files', default=False)
+    parser.add_argument('--disable-password', action='store_true', help='Disable the password on the onefile EXE', default=False)
+    parser.add_argument('--disable-dll', action='store_true', help='Disable Copying the DLLs folder (not recommended)', default=False)
     parser.add_argument('--force-refresh', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
-    parser.add_argument( '--debug', action='store_true', help='Enable all debugging tools: --verbose --keepfiles --folder --disable-compile and disables --windowed and --zip', default=False)
+    parser.add_argument( '--debug', action='store_true', help='Enables all debugging tools: --verbose --keepfiles --folder and disables --windowed and --zip', default=False)
     args = parser.parse_args()
 
     if args.debug:
         args.verbose = True
         args.keepfiles = True
         args.folder = True
-        args.disable_compile = True
         args.zip = False
         args.windowed = False
     if args.zip or args.bat:
         args.folder = True       
     setup_logging(args.verbose)
+
+    if args.windowed and args.bat:
+        logging.error('Windowed mode is not compatible with batchfile mode')
+        sys.exit(1)
 
     source_file_path = os.path.abspath(args.source_file)
     info(f"Source file: {source_file_path}")
@@ -120,7 +127,7 @@ def main():
     info(f"Packaging complete: {folder_path}")
     if not args.noconfirm:
         getpass('Press Enter to continue wrapping the EXE')
-    makexe.main(folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip, bat=args.bat, disable_compiling=args.disable_compile)
+    makexe.main(folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip, bat=args.bat, disable_compiling=args.disable_compile, disable_compressing=args.disable_compressing, disable_password=args.disable_password)
 
 if __name__ == "__main__":
     main()
