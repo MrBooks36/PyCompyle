@@ -9,7 +9,7 @@ del EXEs\bootloader_uac.exe
 del EXEs\bootloaderw_uac.exe
 
 :: Compile regular bootloader
-pyinstaller --onefile -i "NONE" components\bootloader.py 
+pyinstaller --onefile -i "NONE" components\bootloader.py
 move dist\bootloader.exe EXEs\bootloader.exe
 
 :: Compile windowed bootloader

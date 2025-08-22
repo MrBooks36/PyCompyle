@@ -22,7 +22,7 @@ def download_and_extract_zip(url, extract_to='resource_hacker'):
     info(f"Files extracted to: {extract_to}")
 
 
-def download_and_update(github_url="https://raw.githubusercontent.com/ofk20/PyCompyle/main/linked_imports.json", cache_dir="cache", cache_file="linked_imports.json", timestamp_file="linked_imports_timestamp.txt"):
+def download_and_update(github_url="https://raw.githubusercontent.com/MrBooks36/PyCompyle/main/linked_imports.json", cache_dir="cache", cache_file="linked_imports.json", timestamp_file="linked_imports_timestamp.txt"):
     info('Refreshing linked_imports.json')
     try:
         logging.debug(f"Downloading linked_imports.json from GitHub: {github_url}")
