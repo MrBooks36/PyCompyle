@@ -82,9 +82,6 @@ def compress_with_upx(folder_path):
             logging.error("Failed to install UPX. Compression will be skipped.")
             return
 
-    if os.path.isfile(folder_path):
-        subprocess.run([upx_path, "-9", '--force', folder_path], check=True, stdout=logging.debug, stderr=subprocess.DEVNULL)
-        return
     # Gather all files to compress
     files_to_compress = []
     for root, _, files in os.walk(folder_path):
