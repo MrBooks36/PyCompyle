@@ -172,6 +172,10 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
 
     if zip: compress_folder_with_progress(folder_path, folder_name)       
 
+    if not disable_compressing:
+        info('Compressing onefile exe (No progress available)')
+        compress_with_upx(f'{folder_name}.exe')
+
     if not keepfiles and not folder:
         info('Cleaning up...')
         shutil.rmtree(folder_path)

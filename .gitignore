@@ -11,6 +11,9 @@ __pycache__/
 localjson
 tmp*
 
+# Still in testing
+execompile.py
+
 # Distribution / packaging
 .Python
 .exe
