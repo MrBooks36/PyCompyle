@@ -47,11 +47,11 @@ def copy_tk(folder_path):
                 item_path = os.path.join(tcl_directory, item)
                 # Check if item is a directory and matches the phrase
                 if os.path.isdir(item_path) and phrase.lower() in item.lower():
-                    destination_path = os.path.join(folder_path, item)
+                    destination_path = os.path.join(folder_path, 'Lib', item)
                     try:
                         if os.path.exists(destination_path):
                             shutil.rmtree(destination_path)
-                        shutil.copytree(item_path, destination_path)
+                        shutil.copytree(item_path, os.path.join(destination_path))
                     except IOError as e:
                         print(f"Error copying {item_path} to {destination_path}: {e}")
 
