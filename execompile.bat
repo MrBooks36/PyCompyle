@@ -1,5 +1,7 @@
 @echo off
 
+if not exist EXEs mkdir EXEs
+
 :: Remove old executables
 del EXEs\bootloader.exe
 del EXEs\bootloaderw.exe
