@@ -99,7 +99,4 @@ def compress_with_upx(folder_path):
 
     # Compress with progress bar
     for file_path in tqdm(files_to_compress, desc="INFO: Compressing binary files with UPX", unit="file"):
-        try:
-            subprocess.run([upx_path, "-9", file_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except subprocess.CalledProcessError:
-            pass                
+        subprocess.run([upx_path, "-9", file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
