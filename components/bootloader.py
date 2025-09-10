@@ -24,7 +24,7 @@ def extract_embedded_zip(output_dir, password: str) -> bool:
 
     # Locate the embedded ZIP magic header
     zip_start = data.find(b'PK\x03\x04')
-    if zip_start == -1:
+    if zip_start == -1 and not exists(join(dirname(argv[0]), '__main__.py')):
         print("ERROR: No embedded ZIP found in executable.")
         return False
 
@@ -121,7 +121,7 @@ def main():
      if cleanup_directory(output_dir):
         remove(bat_path)
  elif exists(join(dirname(argv[0]), '__main__.py')):
-     remove(output_dir)
+     rmtree(output_dir)
      folder = dirname(argv[0])
      run_extracted_executable(folder)
  else:

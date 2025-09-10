@@ -58,9 +58,10 @@ def main():
     parser.add_argument('--folder', '-f', action='store_true', help='Build to a folder instead of a onefile exe', default=False)
     parser.add_argument('--zip', '-zip', action='store_true', help='Build to a zip instead of a onefile exe (Zip version of --folder)', default=False)
     parser.add_argument('--bat', '-bat', action='store_true', help='Use a .bat file for starting the built script instead of a exe for faster start times (Automatically implies --folder)', default=False)
-    parser.add_argument('--icon', '-icon', help='Icon for the created EXE', default=False)
+    parser.add_argument('--icon', '-icon', help='Icon for the created EXE', default=None)
     parser.add_argument('--uac', '-uac', action='store_true', help='Add UAC to the EXE', default=False)
     parser.add_argument('--package', '-p', action='append', help='Include a package that might have been missed.', default=[])
+    parser.add_argument('--bootloader', help='Use a custom bootloader instead of the default ones (--uac and --windowed will not work as it must be built into the custom bootloader)', default=None)
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output.', default=False)
     parser.add_argument('--windowed', '-w', action='store_true', help='Disable console', default=False)
     parser.add_argument('--keepfiles', '-k', action='store_true', help='Keep the build files', default=False)
@@ -127,7 +128,7 @@ def main():
     info(f"Packaging complete: {folder_path}")
     if not args.noconfirm:
         getpass('Press Enter to continue wrapping the EXE')
-    makexe.main(folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip, bat=args.bat, disable_compiling=args.disable_compile, disable_compressing=args.disable_compressing, disable_password=args.disable_password)
+    makexe.main(folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip, bat=args.bat, disable_compiling=args.disable_compile, disable_compressing=args.disable_compressing, disable_password=args.disable_password, bootloader=args.bootloader)
 
 if __name__ == "__main__":
     main()

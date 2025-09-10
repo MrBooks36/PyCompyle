@@ -1,5 +1,6 @@
 import os, shutil, logging, pyzipper, subprocess
 from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging import info
 try:
     from components.download import install_upx
@@ -93,10 +94,24 @@ def compress_with_upx(folder_path):
         for file in files:
             if any(file.lower().endswith(ext.lower()) for ext in extensions):
                 # Skip common problematic system/runtime files
-                if file.lower().startswith(("qwindows")):
+                if file.lower().startswith(("qwindows", "vcruntime")):
                     continue
                 files_to_compress.append(os.path.join(root, file))
 
-    # Compress with progress bar
-    for file_path in tqdm(files_to_compress, desc="INFO: Compressing binary files with UPX", unit="file"):
-        subprocess.run([upx_path, "-9", file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    def compress_file(file_path):
+        subprocess.run([upx_path, "-9", '--force', file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return
+
+
+    with ThreadPoolExecutor() as executor:
+        # Submit all tasks to the executor
+        futures = {executor.submit(compress_file, file_path): file_path for file_path in files_to_compress}
+        
+        # Use tqdm to show progress
+        with tqdm(total=len(files_to_compress), desc="INFO: Compressing binary files with UPX", unit="file") as pbar:
+            for future in as_completed(futures):
+                try:
+                    future.result()  # Catch exceptions raised during compression
+                except Exception as e:
+                    logging.error(f"Error compressing {futures[future]}: {e}")
+                pbar.update(1)

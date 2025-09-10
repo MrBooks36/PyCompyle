@@ -42,7 +42,7 @@ def delete_pycache(start_dir):
     info(f"Total '__pycache__' folders deleted: {deleted_count}")
 
 
-def create_executable(name, zip_path, no_console=False, uac=False, folder=False, folder_path=str()):
+def create_executable(name, zip_path, bootloader, no_console=False, uac=False, folder=False, folder_path=str()):
     """Creates an executable file using the zip_embeder."""
     exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs')  # type: ignore
     
@@ -52,8 +52,10 @@ def create_executable(name, zip_path, no_console=False, uac=False, folder=False,
         (True, False): "bootloaderw.exe",
         (True, True): "bootloaderw_uac.exe",
     }
-    
-    bootloader = bootloader_map[(no_console, uac)]
+    if not bootloader:
+     bootloader = bootloader_map[(no_console, uac)] 
+    else:
+        info(f'Using custom bootloader: "{bootloader}"') 
     if not folder: zip_embeder(name, os.path.join(exe_folder, bootloader), zip_path)
     else: shutil.copy2(src=os.path.join(exe_folder, bootloader), dst=os.path.join(folder_path, f'{name}.exe'))
 
@@ -115,14 +117,13 @@ def add_icon_to_executable(name, icon_path, folder):
     subprocess.run(command, shell=True)
 
 
-def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False, bat=False, disable_compiling=False, disable_compressing=False, disable_password= False):
+def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False, bat=False, disable_compiling=False, disable_compressing=False, disable_password=False, bootloader=None):
     """Main function to execute the operations."""
     setup_logging()
     folder_name = os.path.basename(folder_path).replace('.build', '')
 
     info('Removing __pycache__ directories...')
     delete_pycache(folder_path)
-    delete_pycache(os.getcwd())
     if not disable_compiling:
      info("Compiling code to PYC files for speed")
      compile_and_replace_py_to_pyc(os.path.join(folder_path, "Lib"))
@@ -161,7 +162,7 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
             file.write('@echo off\n%~dp0\\python.exe %~dp0\\__main__.py')
     else:
         info('Creating executable...')
-        create_executable(folder_name, f"{folder_name}.zip", no_console, uac, folder, folder_path)
+        create_executable(folder_name, f"{folder_name}.zip", bootloader, no_console, uac, folder, folder_path)
 
     if icon_path:
         if os.path.exists(icon_path):
