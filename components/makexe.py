@@ -1,10 +1,10 @@
 import os, subprocess, py_compile, shutil, logging, time, tempfile, sys
 try:
  from components.download import download_and_extract_zip
- from components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx
+ from components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
 except ImportError:
  from download import download_and_extract_zip
- from compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx
+ from compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
 from logging import info, error
 
 MAX_RETRIES = 5
@@ -151,7 +151,7 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
         folder_path = folder_path.replace('.build', '')  # update only after successful rename
         break
       except OSError as e:
-        print(f"Attempt {attempt} failed to rename {folder_path} -> {folder_name}: {e}")
+        logging.warning(f"Attempt {attempt} failed to rename {folder_path} -> {folder_name}: {e}")
         if attempt == MAX_RETRIES:
             logging.critical(f"Failed to rename {folder_path} after {MAX_RETRIES} attempts. Exiting.")
             sys.exit(1)
@@ -175,7 +175,8 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
 
     if not disable_compressing:
         info('Compressing onefile exe (No progress available)')
-        compress_with_upx(f'{folder_name}.exe')
+        if folder: compress_file_with_upx(f"{folder_name}\\{folder_name}.exe")
+        else: compress_file_with_upx(f"{folder_name}.exe")
 
     if not keepfiles and not folder:
         info('Cleaning up...')

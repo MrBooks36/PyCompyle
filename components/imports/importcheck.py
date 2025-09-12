@@ -1,4 +1,4 @@
-import os, subprocess, logging, sys, ast, json
+import os, subprocess, logging, sys, ast, json, shutil
 from datetime import datetime, timedelta, timezone
 from logging import info
 
@@ -9,7 +9,7 @@ try:
 except ImportError:
  import download
 
-def load_linked_imports(force=False):
+def load_linked_imports(force_refresh=False):
     local_appdata = os.environ.get("LOCALAPPDATA", "")
     cache_dir = os.path.join(local_appdata, "PyCompyle.cache")
     cache_file = os.path.join(cache_dir, "linked_imports.json")
@@ -17,10 +17,12 @@ def load_linked_imports(force=False):
     github_url = "https://raw.githubusercontent.com/MrBooks36/PyCompyle/main/linked_imports.json"
     refresh_interval = timedelta(hours=24)
     local_json = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "linked_imports.json") # type: ignore
+    if force_refresh:
+        shutil.rmtree(cache_dir, ignore_errors=True)
 
     os.makedirs(cache_dir, exist_ok=True)
 
-    needs_refresh = force or not os.path.exists(cache_file)
+    needs_refresh = not os.path.exists(cache_file)
     if not needs_refresh and os.path.exists(timestamp_file):
         try:
             with open(timestamp_file, "r") as tf:
@@ -102,7 +104,7 @@ def run_import_checker(imports, packages, source_dir, tmp_script_path, tmp_outpu
     
     return modules
 
-def process_imports(source_file_path, packages, keepfile):
+def process_imports(source_file_path, packages, keepfile, force_refresh=False):
     source_dir = os.path.dirname(source_file_path)
     if source_dir not in sys.path:
         sys.path.insert(0, source_dir)
@@ -125,7 +127,7 @@ def process_imports(source_file_path, packages, keepfile):
 
     # Clean raw modules
     cleaned_modules = set(mod.split('.')[0] for mod in raw_modules if mod and isinstance(mod, str))
-    linked_imports = load_linked_imports()
+    linked_imports = load_linked_imports(force_refresh)
     cleaned_modules = resolve_linked_imports_recursive(cleaned_modules.union(packages), linked_imports)
     cleaned_modules = sorted(cleaned_modules)
     logging.debug(f"First cleaned modules (with linked deps): {cleaned_modules}")

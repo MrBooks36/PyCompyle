@@ -82,11 +82,6 @@ def compress_with_upx(folder_path):
         if not upx_path:
             logging.error("Failed to install UPX. Compression will be skipped.")
             return
-
-    # This is here so I don't have to write a new function
-    if os.path.isfile(folder_path):
-        subprocess.run([upx_path, "-9", '--force', folder_path], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-        return
     
     # Gather all files to compress
     files_to_compress = []
@@ -100,7 +95,6 @@ def compress_with_upx(folder_path):
 
     def compress_file(file_path):
         subprocess.run([upx_path, "-9", '--force', file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return
 
 
     with ThreadPoolExecutor() as executor:
@@ -115,3 +109,15 @@ def compress_with_upx(folder_path):
                 except Exception as e:
                     logging.error(f"Error compressing {futures[future]}: {e}")
                 pbar.update(1)
+
+def compress_file_with_upx(file_path):
+    upx_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "PyCompyle.cache", "upx.exe")
+    if not os.path.exists(upx_path):
+        info("UPX not found, downloading...")
+        upx_path = install_upx()
+        if not upx_path:
+            logging.error("Failed to install UPX. Compression will be skipped.")
+            return
+
+    if os.path.isfile(file_path):
+        subprocess.run([upx_path, "-9", '--force', file_path], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)

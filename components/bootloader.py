@@ -18,20 +18,21 @@ def generate_unique_output_dir(base_path=None):
     return output_dir
 
 
-def extract_embedded_zip(output_dir, password: str) -> bool:
+def extract_embedded_zip(output_dir: str, password: str) -> bool:
     with open(argv[0], 'rb') as f:
         data = f.read()
 
-    # Locate the embedded ZIP magic header
     zip_start = data.find(b'PK\x03\x04')
-    if zip_start == -1 and not exists(join(dirname(argv[0]), '__main__.py')):
-        print("ERROR: No embedded ZIP found in executable.")
+    if zip_start == -1:
+        if not exists(join(dirname(argv[0]), '__main__.py')):
+            print("ERROR: No embedded ZIP found in executable.")
+            return False
+        # found __main__.py but no zip -> do not try to slice, just stop
         return False
 
     zip_name = f'embedded_{randint(1000, 9999)}.zip'
     zip_path = join(output_dir, zip_name)
 
-    # Dump the embedded archive to disk temporarily
     with open(zip_path, 'wb') as zip_file:
         zip_file.write(data[zip_start:])
 
@@ -55,6 +56,8 @@ def run_extracted_executable(output_dir):
     python_executable = join(output_dir, 'python.exe')
     script_path = join(output_dir, "__main__.py")
 
+    marker_comment = "# PyCompyle custom sys injection above DO NOT EDIT\n"
+
     new_text = (
         "import sys\n"
         f"sys.argv[0] = r'{argv[0]}'\n"
@@ -63,13 +66,23 @@ def run_extracted_executable(output_dir):
     )
 
     try:
-        with open(script_path, 'r', encoding='utf-8') as original_file:
-            original_content = original_file.read()
+        with open(script_path, 'r', encoding='utf-8') as f:
+            original_content = f.read()
 
-        # Check if sys modifications are already in the script
-        if not original_content.startswith(new_text.strip()):
-            with open(script_path, 'w', encoding='utf-8') as modified_file:
-                modified_file.write(new_text + original_content)
+        # Detect if marker exists
+        if marker_comment in original_content:
+            # Replace everything above the marker
+            _, after_marker = original_content.split(marker_comment, 1)
+            # Strip any old sys modifications above marker
+            modified_content = new_text + marker_comment + after_marker.lstrip()
+        else:
+            # No marker: prepend sys modifications + marker
+            modified_content = new_text + marker_comment + original_content
+
+        # Avoid rewriting if content is identical
+        if modified_content != original_content:
+            with open(script_path, 'w', encoding='utf-8') as f:
+                f.write(modified_content)
 
     except FileNotFoundError:
         print(f"Script path '{script_path}' not found.")

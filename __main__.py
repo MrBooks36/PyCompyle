@@ -38,7 +38,7 @@ def check_system():
 
 def validate_platform():
     if not check_system():
-        print("This script is designed to run only on Windows 64-bit.")
+        print("PyCompyle is designed to run only on Windows 64-bit.")
         sys.exit(1)
 
 def setup_destination_folder(source_file):
@@ -66,11 +66,11 @@ def main():
     parser.add_argument('--windowed', '-w', action='store_true', help='Disable console', default=False)
     parser.add_argument('--keepfiles', '-k', action='store_true', help='Keep the build files', default=False)
     parser.add_argument('--copy', '-copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
-    parser.add_argument('--disable-compile', action='store_true', help='Disable compiling Lib to .pyc files (use for debugging)', default=False)
+    parser.add_argument('--disable-compile', action='store_true', help='Disable compiling Lib to .pyc files (useful for debugging)', default=False)
     parser.add_argument('--disable-compressing', action='store_true', help='Disable compressing binary files', default=False)
     parser.add_argument('--disable-password', action='store_true', help='Disable the password on the onefile EXE', default=False)
     parser.add_argument('--disable-dll', action='store_true', help='Disable Copying the DLLs folder (not recommended)', default=False)
-    parser.add_argument('--force-refresh', action='store_true', help='Force refresh of linked_imports.json from GitHub', default=False)
+    parser.add_argument('--force-refresh', action='store_true', help='Remove the PyCompyle.cache folder and reinstall components', default=False)
     parser.add_argument( '--debug', action='store_true', help='Enables all debugging tools: --verbose --keepfiles --folder and disables --windowed and --zip', default=False)
     args = parser.parse_args()
 
@@ -87,7 +87,9 @@ def main():
     if args.windowed and args.bat:
         logging.error('Windowed mode is not compatible with batchfile mode')
         sys.exit(1)
-
+    if args.uac and args.bat:
+        logging.error('UAC is not compatible with batchfile mode')
+        sys.exit(1)
     source_file_path = os.path.abspath(args.source_file)
     info(f"Source file: {source_file_path}")
     if not os.path.exists(source_file_path):
@@ -115,7 +117,7 @@ def main():
         except Exception as e:
             logging.error(f"Failed to copy '{path}': {e}")
 
-    cleaned_modules = importcheck.process_imports(source_file_path, args.package, args.keepfiles)
+    cleaned_modules = importcheck.process_imports(source_file_path, args.package, args.keepfiles, args.force_refresh)
     lib_path = os.path.join(folder_path, 'lib')
     os.makedirs(lib_path, exist_ok=True)
     source_dir = os.path.dirname(source_file_path)
