@@ -38,7 +38,7 @@ def check_system():
 
 def validate_platform():
     if not check_system():
-        print("This script is designed to run only on Windows 64-bit.")
+        print("PyCompyle is designed to run only on Windows 64-bit.")
         sys.exit(1)
 
 def setup_destination_folder(source_file):
@@ -87,12 +87,18 @@ def main():
     if args.windowed and args.bat:
         logging.error('Windowed mode is not compatible with batchfile mode')
         sys.exit(1)
+    if args.uac and args.bat:
+        logging.error('UAC is not compatible with batchfile mode')
+        sys.exit(1)    
 
     source_file_path = os.path.abspath(args.source_file)
-    info(f"Source file: {source_file_path}")
+    if not source_file_path.endswith('.py'):
+        logging.critical(f"{source_file_path} not a .py file")
+        sys.exit(1)
     if not os.path.exists(source_file_path):
         logging.critical(f"{source_file_path} does not exist")
-        exit()
+        sys.exit(1)
+    info(f"Source file: {source_file_path}")    
     os.chdir(os.path.dirname(source_file_path))
 
     folder_path = setup_destination_folder(args.source_file)
@@ -123,12 +129,12 @@ def main():
 
     destination_file_path = os.path.join(folder_path, "__main__.py")
     shutil.copyfile(source_file_path, destination_file_path)
-    info(f"Packaged script copied to {destination_file_path}")
+    info(f"Script copied to {destination_file_path}")
 
-    info(f"Packaging complete: {folder_path}")
+    info(f"Building complete")
     if not args.noconfirm:
         getpass('Press Enter to continue wrapping the EXE')
-    makexe.main(folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip, bat=args.bat, disable_compiling=args.disable_compile, disable_compressing=args.disable_compressing, disable_password=args.disable_password, bootloader=args.bootloader)
+    makexe.main(folder_path, args)
 
 if __name__ == "__main__":
     main()

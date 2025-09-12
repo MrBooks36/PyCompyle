@@ -7,9 +7,6 @@ except ImportError:
  from compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx
 from logging import info, error
 
-MAX_RETRIES = 5
-RETRY_DELAY = 2  # seconds
-
 def setup_logging(log_level=logging.INFO):
     """Set up logging configuration."""
     logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
@@ -94,13 +91,12 @@ def compile_and_replace_py_to_pyc(directory):
                         print(f"Failed to compile {py_file_path}: {compile_error}")
                     except Exception as e:
                         print(f"An error occurred with {py_file_path}: {e}")
-
                 finally:
                     # Clean up the temporary directory
                     shutil.rmtree(temp_dir)
 
 
-def add_icon_to_executable(name, icon_path, folder):
+def add_icon_to_executable(name, icon_path):
     """Adds an icon to an executable using Resource Hacker."""
     name = os.path.abspath(name)
     cache_path = os.path.expandvars('%LOCALAPPDATA%\\PyCompyle.cache')
@@ -112,19 +108,18 @@ def add_icon_to_executable(name, icon_path, folder):
         download_and_extract_zip('https://www.angusj.com/resourcehacker/resource_hacker.zip', cache_path)
 
     r_hacker_path = os.path.join(cache_path, 'resource_hacker', 'ResourceHacker.exe')
-    if folder: command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
-    else: command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
+    command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
     subprocess.run(command, shell=True)
 
 
-def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False, bat=False, disable_compiling=False, disable_compressing=False, disable_password=False, bootloader=None):
+def main(folder_path, args):
     """Main function to execute the operations."""
     setup_logging()
     folder_name = os.path.basename(folder_path).replace('.build', '')
 
     info('Removing __pycache__ directories...')
     delete_pycache(folder_path)
-    if not disable_compiling:
+    if not args.disable_compiling:
      info("Compiling code to PYC files for speed")
      compile_and_replace_py_to_pyc(os.path.join(folder_path, "Lib"))
 
@@ -132,19 +127,19 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
         file.write('Dlls\nLib\nLib_c.zip')
     
-
-    if not disable_compressing:
+    if not args.disable_compressing:
         compress_with_upx(folder_path)
         compress_top_level_pyc(os.path.join(folder_path, "Lib"), output_name=os.path.join(folder_path, "Lib_c"))
     
-    if not folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not disable_password else None)
+    if not args.folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not args.disable_password else None)
     else:
      try:
         shutil.rmtree(folder_name)
      except Exception as e:
         if os.path.exists(folder_name):
             error(f"Failed to remove existing folder {folder_name}: {e}")
-
+     MAX_RETRIES = 5
+     RETRY_DELAY = 2  # seconds
      for attempt in range(1, MAX_RETRIES + 1):
       try:
         os.rename(folder_path, folder_name)
@@ -156,31 +151,31 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
             logging.critical(f"Failed to rename {folder_path} after {MAX_RETRIES} attempts. Exiting.")
             sys.exit(1)
         time.sleep(RETRY_DELAY)
-    if bat:
+    if args.bat:
         info('Creating Batchfile...')
         with open(os.path.join(folder_path, f'{folder_name}.bat'), 'w') as file:
             file.write('@echo off\n%~dp0\\python.exe %~dp0\\__main__.py')
     else:
         info('Creating executable...')
-        create_executable(folder_name, f"{folder_name}.zip", bootloader, no_console, uac, folder, folder_path)
+        create_executable(folder_name, f"{folder_name}.zip", args.bootloader, args.no_console, args.uac, args.folder, folder_path)
 
-    if icon_path:
-        if os.path.exists(icon_path):
-            info(f'Adding icon: {icon_path}')
-            add_icon_to_executable(folder_name, icon_path, folder)
+    if args.icon_path:
+        if os.path.exists(args.icon_path):
+            info(f'Adding icon: {args.icon_path}')
+            add_icon_to_executable(folder_name, args.icon_path)
         else:
-            error(f'Icon file not found: {icon_path}')
+            error(f'Icon file not found: {args.icon_path}')
 
     if zip: compress_folder_with_progress(folder_path, folder_name)       
 
-    if not disable_compressing:
+    if not args.disable_compressing:
         info('Compressing onefile exe (No progress available)')
         compress_with_upx(f'{folder_name}.exe')
 
-    if not keepfiles and not folder:
+    if not args.keepfiles and not args.folder:
         info('Cleaning up...')
         shutil.rmtree(folder_path)
         os.remove(f"{folder_name}.zip")
-    if zip and not keepfiles:
+    if zip and not args.keepfiles:
         info('Cleaning up...')
         shutil.rmtree(folder_path)
