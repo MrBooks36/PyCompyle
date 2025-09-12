@@ -1,5 +1,4 @@
 requests
 tqdm
-# Un-comment the below to install the requirements for building the EXEs folder from source 
-#pyzipper
-#pyinstaller
+pywin32
+pyzipper
