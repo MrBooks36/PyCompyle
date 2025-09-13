@@ -19,36 +19,33 @@ def generate_unique_output_dir(base_path=None):
 
 
 def extract_embedded_zip(output_dir: str, password: str) -> bool:
-    with open(argv[0], 'rb') as f:
-        data = f.read()
-
-    zip_start = data.find(b'PK\x03\x04')
-    if zip_start == -1:
-        if not exists(join(dirname(argv[0]), '__main__.py')):
-            print("ERROR: No embedded ZIP found in executable.")
-            return False
-        # found __main__.py but no zip -> do not try to slice, just stop
+    exe_path = argv[0]
+    bufsize = 1024*1024
+    offset = 0
+    start = -1
+    with open(exe_path, 'rb') as f:
+        while True:
+            chunk = f.read(bufsize)
+            if not chunk:
+                break
+            i = chunk.find(b'PK\x03\x04')
+            if i != -1:
+                start = offset + i
+                break
+            offset += len(chunk)
+    if start == -1:
+        if not exists(join(dirname(exe_path), '__main__.py')):
+            print("ERROR: No embedded ZIP found.")
         return False
-
-    zip_name = f'embedded_{randint(1000, 9999)}.zip'
-    zip_path = join(output_dir, zip_name)
-
-    with open(zip_path, 'wb') as zip_file:
-        zip_file.write(data[zip_start:])
-
-    try:
-        with AESZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.pwd = password.encode('utf-8')
-            zip_ref.extractall(path=output_dir)
-    except (RuntimeError, BadZipFile, LargeZipFile) as e:
-        print(f"ERROR: Failed to extract ZIP file: {e}")
-        return False
-    finally:
+    with open(exe_path, 'rb') as f:
+        f.seek(start)
         try:
-            remove(zip_path)
-        except FileNotFoundError:
-            pass
-
+            with AESZipFile(f) as zf:
+                zf.pwd = password.encode()
+                zf.extractall(output_dir)
+        except (RuntimeError, BadZipFile, LargeZipFile) as e:
+            print(f"ERROR: Failed to extract ZIP: {e}")
+            return False
     return True
 
 

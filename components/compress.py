@@ -94,7 +94,7 @@ def compress_with_upx(folder_path):
                 files_to_compress.append(os.path.join(root, file))
 
     def compress_file(file_path):
-        subprocess.run([upx_path, "-9", '--force', file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run([upx_path, "--brute", file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
     with ThreadPoolExecutor() as executor:
@@ -120,4 +120,4 @@ def compress_file_with_upx(file_path):
             return
 
     if os.path.isfile(file_path):
-        subprocess.run([upx_path, "-9", '--force', file_path], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
+        subprocess.run([upx_path, "--brute", '--force', file_path], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
