@@ -5,70 +5,87 @@ import io
 import subprocess
 import shutil
 import json
+import sysconfig
+import tempfile
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
+from subprocess import CalledProcessError
 
 def get_site_packages_path():
-    for path in sys.path:
-        if "site-packages" in path:
-            return path
-    raise Exception("site-packages path not found")
+    return sysconfig.get_paths()["purelib"]
 
 def check_if_already_installed():
-    return os.path.exists(os.path.join(get_site_packages_path(), "PyCompyle"))
+    target = os.path.join(get_site_packages_path(), "PyCompyle")
+    init_file = os.path.join(target, "__main__.py")
+    return os.path.isdir(target) and os.path.isfile(init_file)
 
 def uninstall():
     target = os.path.join(get_site_packages_path(), "PyCompyle")
-    if os.path.exists(target):
-        shutil.rmtree(target)
+    if os.path.isdir(target):
+        shutil.rmtree(target, ignore_errors=True)
         print("Uninstalled PyCompyle")
     else:
         print("PyCompyle is not installed.")
 
 def get_latest_release(repo_url):
     api_url = f"https://api.github.com/repos/{repo_url}/releases/latest"
+    headers = {'User-Agent': 'Mozilla/5.0'}
     try:
-        response = urlopen(api_url)
-        data = json.loads(response.read().decode())
+        req = Request(api_url, headers=headers)
+        with urlopen(req) as response:
+            data = json.loads(response.read().decode())
+        for asset in data.get("assets", []):
+            name = asset.get("name", "").lower()
+            if "build" in name and name.endswith(".zip"):
+                return asset["browser_download_url"]
+        print("No build zip found, using source zip.")    
         return data["zipball_url"]
     except HTTPError as e:
-        raise Exception(f"HTTP Error: {e.code} - {e.reason}")
+        raise Exception(f"HTTP Error: {e.code} - {e.reason}") from e
     except URLError as e:
-        raise Exception(f"URL Error: {e.reason}")
+        raise Exception(f"URL Error: {e.reason}") from e
     except Exception as e:
-        raise Exception(f"Failed to get latest release: {e}")
+        raise Exception(f"Failed to get latest release: {e}") from e
+
+def _safe_extract(zip_file, path):
+    for member in zip_file.namelist():
+        member_path = os.path.abspath(os.path.join(path, member))
+        if not member_path.startswith(os.path.abspath(path) + os.sep):
+            raise Exception("Zip file contains unsafe paths")
+    zip_file.extractall(path)
 
 def download_and_extract_zip(zip_url, extract_to):
+    headers = {'User-Agent': 'Mozilla/5.0'}
     try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
         req = Request(zip_url, headers=headers)
         with urlopen(req) as response:
             with zipfile.ZipFile(io.BytesIO(response.read())) as z:
-                temp_dir = os.path.join(extract_to, "__PyCompyle_temp__")
-                if os.path.exists(temp_dir):
-                    shutil.rmtree(temp_dir)
-                z.extractall(temp_dir)
-
-                inner_folder = next(os.scandir(temp_dir)).path
-                final_path = os.path.join(extract_to, "PyCompyle")
-                if os.path.exists(final_path):
-                    shutil.rmtree(final_path)
-                shutil.move(inner_folder, final_path)
-                shutil.rmtree(temp_dir)
+                with tempfile.TemporaryDirectory(prefix="PyCompyle_tmp_") as temp_dir:
+                    _safe_extract(z, temp_dir)
+                    entries = [e for e in os.scandir(temp_dir) if e.is_dir()]
+                    if not entries:
+                        raise Exception("No folder found in zip")
+                    inner_folder = entries[0].path
+                    final_path = os.path.join(extract_to, "PyCompyle")
+                    if os.path.exists(final_path):
+                        shutil.rmtree(final_path, ignore_errors=True)
+                    shutil.move(inner_folder, final_path)
     except Exception as e:
-        raise Exception(f"Failed to download and extract zip: {e}")
+        raise Exception(f"Failed to download and extract zip: {e}") from e
 
 def install_requirements(package_path):
     req_file = os.path.join(package_path, "requirements.txt")
     if os.path.exists(req_file):
-        result = subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-r", req_file],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode != 0:
-            print(result.stderr)
-            raise Exception("Failed to install requirements")
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-r", req_file],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+        except CalledProcessError as e:
+            print(e.stderr)
+            raise Exception("Failed to install requirements") from e
     else:
         print("No requirements.txt found, skipping dependency installation.")
 
@@ -82,7 +99,6 @@ def install_latest_release(repo_url):
 
 if __name__ == "__main__":
     repository = "MrBooks36/PyCompyle"
-
     try:
         if check_if_already_installed():
             choice = input("PyCompyle is already installed. [R]emove, [U]pdate/Repair, [Any other button] Cancel: ").lower()
