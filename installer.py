@@ -32,10 +32,6 @@ def uninstall():
 
 
 def get_latest_release(repo_url):
-    """
-    Returns the URL of the latest build zip if it exists,
-    otherwise returns the zipball_url of the source.
-    """
     api_url = f"https://api.github.com/repos/{repo_url}/releases/latest"
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
@@ -68,11 +64,6 @@ def _safe_extract(zip_file, path):
     zip_file.extractall(path)
 
 def download_and_extract_zip(zip_url, extract_to):
-    """
-    Downloads the zip from zip_url, extracts it safely, and
-    moves all files/folders into extract_to/PyCompyle.
-    Works for both flat build zips and nested GitHub source zips.
-    """
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
         req = Request(zip_url, headers=headers)

@@ -61,7 +61,6 @@ def copy_tk(folder_path):
         print(f"An unexpected error occurred in copy_tk: {e}")
       
 def copy_linked_imports(linked_imports_file, folder_path, lib_path):
-    """Copy specified linked imports to the build directory."""
     try:
         with open(linked_imports_file, 'r', encoding='utf-8') as f:
             additional_imports = f.read().strip().split('\n')

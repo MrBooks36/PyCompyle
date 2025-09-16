@@ -11,7 +11,6 @@ MAX_RETRIES = 5
 RETRY_DELAY = 2  # seconds
 
 def setup_logging(log_level=logging.INFO):
-    """Set up logging configuration."""
     logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
 
 def zip_embeder(name, exe_file, zip_file):
@@ -27,7 +26,6 @@ def zip_embeder(name, exe_file, zip_file):
         info(f"Combined executable created: {output_file}")
 
 def delete_pycache(start_dir):
-    """Deletes __pycache__ directories recursively."""
     deleted_count = 0
 
     for root, dirs, _ in os.walk(start_dir):
@@ -43,7 +41,6 @@ def delete_pycache(start_dir):
 
 
 def create_executable(name, zip_path, bootloader, no_console=False, uac=False, folder=False, folder_path=str()):
-    """Creates an executable file using the zip_embeder."""
     exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs')  # type: ignore
     
     bootloader_map = {
@@ -101,7 +98,6 @@ def compile_and_replace_py_to_pyc(directory):
 
 
 def add_icon_to_executable(name, icon_path, folder):
-    """Adds an icon to an executable using Resource Hacker."""
     name = os.path.abspath(name)
     cache_path = os.path.expandvars('%LOCALAPPDATA%\\PyCompyle.cache')
     os.makedirs(cache_path, exist_ok=True)
@@ -118,7 +114,6 @@ def add_icon_to_executable(name, icon_path, folder):
 
 
 def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False, bat=False, disable_compiling=False, disable_compressing=False, disable_password=False, bootloader=None):
-    """Main function to execute the operations."""
     setup_logging()
     folder_name = os.path.basename(folder_path).replace('.build', '')
 

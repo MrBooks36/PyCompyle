@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from logging import info
 
 def download_and_extract_zip(url, extract_to='resource_hacker'):
-    """Downloads and extracts a zip file from a given URL."""
     os.makedirs(extract_to, exist_ok=True)
     extract_to= os.path.join(extract_to, 'resource_hacker')
     os.makedirs(extract_to, exist_ok=True)
