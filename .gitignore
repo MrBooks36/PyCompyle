@@ -13,9 +13,6 @@ __pycache__/
 localjson
 tmp*
 
-# Still in testing
-execompile.py
-build.py
 
 # Distribution / packaging
 .Python
