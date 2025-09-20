@@ -40,8 +40,13 @@ def delete_pycache(start_dir):
     info(f"Total '__pycache__' folders deleted: {deleted_count}")
 
 
-def create_executable(name, zip_path, bootloader, no_console=False, uac=False, folder=False, folder_path=str()):
-    exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs')  # type: ignore
+def create_executable(name,zip_path: str,bootloader: str = None,no_console: bool = False,uac: bool = False,folder: bool = False, folder_path=""):
+    try:
+        exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs')  # type: ignore
+    except AttributeError:
+        exe_folder = os.path.abspath('EXEs')
+    
+    os.makedirs(exe_folder, exist_ok=True)
     
     bootloader_map = {
         (False, False): "bootloader.exe",
@@ -49,12 +54,22 @@ def create_executable(name, zip_path, bootloader, no_console=False, uac=False, f
         (True, False): "bootloaderw.exe",
         (True, True): "bootloaderw_uac.exe",
     }
+    
     if not bootloader:
-     bootloader = bootloader_map[(no_console, uac)] 
+        bootloader = bootloader_map[(no_console, uac)]
+        bootloader = os.path.join(exe_folder, bootloader)
     else:
         info(f'Using custom bootloader: "{bootloader}"') 
-    if not folder: zip_embeder(name, os.path.join(exe_folder, bootloader), zip_path)
-    else: shutil.copy2(src=os.path.join(exe_folder, bootloader), dst=os.path.join(folder_path, f'{name}.exe'))
+    
+    
+    if not folder:
+        zip_embeder(name, bootloader, zip_path)
+    else:
+        if not folder_path:
+            logging.error("folder_path must be specified when --folder is passed.")
+            sys.exit(1)
+        os.makedirs(folder_path, exist_ok=True)
+        shutil.copy2(src=bootloader, dst=os.path.join(folder_path, f'{name}.exe'))
 
 
 def compile_and_replace_py_to_pyc(directory):

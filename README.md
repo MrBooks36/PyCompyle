@@ -17,6 +17,9 @@ Package a Python script into an executable (EXE) with its dependencies without b
 - Add UAC (User Account Control) prompt to the EXE.
 
 ## Installation
+
+Python version 3.6 or higher
+
 To access the latest releases of this project, please visit our [Releases page](https://github.com/MrBooks36/PyCompyle/releases).  
 Simply download the `installer.py` script and execute it to install PyCompyle directly into the site-packages directory.
 
