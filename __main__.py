@@ -7,7 +7,8 @@ try:
     from components import makexe, copylogic
 except: 
     from PyCompyle.components.imports import importcheck # type: ignore
-    from PyCompyle.components import makexe, importcheck, copylogic  # type: ignore
+    from PyCompyle.components import makexe, copylogic  # type: ignore
+    from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components.copylogic import exclude_pattens # type: ignore
 
 

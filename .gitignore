@@ -15,6 +15,7 @@ tmp*
 
 
 # Distribution / packaging
+build.zip
 .Python
 .exe
 build/

@@ -80,10 +80,15 @@ def main():
             else:
                 os.remove(target)
 
+    shutil.rmtree(os.path.join(build_folder, 'dist'))           
+
     # Step 5: Remove __pycache__ recursively
     delete_pycache(build_folder)
 
     print('Build cleanup completed.')
+    print("Compressing build folder into build.zip...")
+    shutil.make_archive('build', 'zip', build_folder)
+    print('Build process completed successfully.')
 
 if __name__ == "__main__":
     main()
