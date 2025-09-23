@@ -3,9 +3,9 @@ from datetime import datetime, timedelta, timezone
 from logging import info
 
 try:from components.imports import getimports
-except: import getimports
+except: from PyCompyle.components.imports import getimports
 try:
- from components import download
+ from PyCompyle.components import download
 except ImportError:
  import download
 
