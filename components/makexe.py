@@ -3,8 +3,8 @@ try:
  from components.download import download_and_extract_zip
  from components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
 except ImportError:
- from download import download_and_extract_zip
- from compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
+ from PyCompyle.components.download import download_and_extract_zip
+ from PyCompyle.components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
 from logging import info, error
 
 MAX_RETRIES = 5

@@ -5,7 +5,7 @@ from logging import info
 try:
     from components.download import install_upx
 except ImportError:
-    from download import install_upx
+    from PyCompyle.components.download import install_upx
 
 def compress_folder_with_progress(folder_path, output_zip_name, password=None, compression_level=6, text='INFO: Zipping'):
     total_size = sum(
