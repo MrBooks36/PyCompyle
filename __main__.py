@@ -5,11 +5,13 @@ try:
     from components.imports import importcheck
     from components.copylogic import exclude_pattens
     from components import makexe, copylogic
+    from components.plugins import load_plugin, get_special_cases
 except: 
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components import makexe, copylogic  # type: ignore
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components.copylogic import exclude_pattens # type: ignore
+    from PyCompyle.components.plugins import load_plugin # type: ignore
 
 
 exclude_pattens = ['__pycache__', '.git', '.github', '.gitignore', 'readme*', 'licence*', '.vscode']
@@ -62,6 +64,7 @@ def main():
     parser.add_argument('--icon', '-icon', help='Icon for the created EXE', default=None)
     parser.add_argument('--uac', '-uac', action='store_true', help='Add UAC to the EXE', default=False)
     parser.add_argument('--package', '-p', action='append', help='Include a package that might have been missed.', default=[])
+    parser.add_argument('--plugin', '-pl', action='append', help='Load a plugin by path or name for built-in plugins', default=[])
     parser.add_argument('--bootloader', help='Use a custom bootloader instead of the default ones (--uac and --windowed will not work as it must be built into the custom bootloader)', default=None)
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output.', default=False)
     parser.add_argument('--windowed', '-w', action='store_true', help='Disable console', default=False)
@@ -85,12 +88,20 @@ def main():
         args.folder = True       
     setup_logging(args.verbose)
 
+    for plugin in args.plugin:
+        try:
+            load_plugin(plugin)
+        except Exception as e:
+            logging.error(f"Failed to load plugin '{plugin}': {e}")
+            sys.exit(1)     
+
     if args.windowed and args.bat:
         logging.error('Windowed mode is not compatible with batchfile mode')
         sys.exit(1)
     if args.uac and args.bat:
         logging.error('UAC is not compatible with batchfile mode')
         sys.exit(1)
+
     source_file_path = os.path.abspath(args.source_file)
     info(f"Source file: {source_file_path}")
     if not os.path.exists(source_file_path):
