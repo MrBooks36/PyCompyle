@@ -10,7 +10,6 @@
   "queue": ["heapq"],
   "pickle": ["_compat_pickle"],
   "socket": ["selectors"],
-  "win32com": ["traceback", "winerror", "glob", "win32event", "pickle"],
   "traceback": ["linecache", "textwrap"],
   "linecache": ["tokenize"],
   "tokenize": ["token"]

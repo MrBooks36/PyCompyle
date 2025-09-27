@@ -12,3 +12,10 @@ def special_case(import_name='pythoncom'):
                 os.path.join(folder_path, "Lib",'pywin32_system32'),
                 exclude_patterns=exclude_pattens)
     info(f"Special case: Copied pywin32_system32 for {import_name}")
+
+
+def modify_args(args):
+    for package in ["pythoncom", "traceback", "winerror", "glob", "win32event", "pickle"]:
+        if package not in args.package:
+            args.package.append(package)
+    return args

@@ -5,7 +5,7 @@ try:
     from components.imports import importcheck
     from components.copylogic import exclude_pattens
     from components import makexe, copylogic
-    from components.plugins import load_plugin, get_special_cases
+    from components.plugins import load_plugin, load_modified_args
 except: 
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components import makexe, copylogic  # type: ignore
@@ -77,6 +77,15 @@ def main():
     parser.add_argument('--force-refresh', action='store_true', help='Remove the PyCompyle.cache folder and reinstall components', default=False)
     parser.add_argument( '--debug', action='store_true', help='Enables all debugging tools: --verbose --keepfiles --folder and disables --windowed and --zip', default=False)
     args = parser.parse_args()
+    setup_logging(args.verbose)
+    for plugin in args.plugin:
+        try:
+            load_plugin(plugin)
+        except Exception as e:
+            logging.error(f"Failed to load plugin '{plugin}': {e}")
+            sys.exit(1) 
+
+    args = load_modified_args(args)
 
     if args.debug:
         args.verbose = True
@@ -85,15 +94,7 @@ def main():
         args.zip = False
         args.windowed = False
     if args.zip or args.bat:
-        args.folder = True       
-    setup_logging(args.verbose)
-
-    for plugin in args.plugin:
-        try:
-            load_plugin(plugin)
-        except Exception as e:
-            logging.error(f"Failed to load plugin '{plugin}': {e}")
-            sys.exit(1)     
+        args.folder = True        
 
     if args.windowed and args.bat:
         logging.error('Windowed mode is not compatible with batchfile mode')

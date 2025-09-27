@@ -48,7 +48,7 @@ def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
     # Move top-level .pyc files
     for item in os.listdir(lib_folder):
         item_path = os.path.join(lib_folder, item)
-        if os.path.isfile(item_path) and item_path.endswith(".pyc"):
+        if os.path.isfile(item_path) and item_path.endswith((".pyc", ".py")):
             shutil.move(item_path, lib_c_path)
 
     # Move top-level folders containing only .pyc files
