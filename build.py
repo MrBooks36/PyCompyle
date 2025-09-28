@@ -79,8 +79,7 @@ def main():
                 shutil.rmtree(target, onexc=remove_readonly)
             else:
                 os.remove(target)
-
-    shutil.rmtree(os.path.join(build_folder, 'dist'))           
+    
 
     # Step 5: Remove __pycache__ recursively
     delete_pycache(build_folder)
