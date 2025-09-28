@@ -13,7 +13,7 @@ BOOTLOADER = os.path.join("components", "bootloader.py")
 
 def compile_bootloader(pyinstaller_args, output_name):
     subprocess.run(
-        ["pyinstaller", "--onefile", "--distpath", "dist", "--icon 'None'"] + pyinstaller_args + [BOOTLOADER],
+        ["pyinstaller", "--onefile", "-i NONE", "--distpath", "dist" ]+ pyinstaller_args + [BOOTLOADER],
         check=True
     )
     dist_path = os.path.join("dist", "bootloader.exe")
