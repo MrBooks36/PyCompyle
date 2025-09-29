@@ -13,7 +13,7 @@ for exe in ["bootloader.exe", "bootloaderw.exe", "bootloader_uac.exe", "bootload
 BOOTLOADER = os.path.join("components", "bootloader.py")
 
 def compile_bootloader(pyinstaller_args, output_name):
-    cmd = ["pyinstaller", "--onefile", "-i", "NONE", "--distpath", "dist"] + pyinstaller_args + [BOOTLOADER]
+    cmd = ["pyinstaller", "--onefile", "-i", "NONE", "--strip", "--distpath", "dist"] + pyinstaller_args + [BOOTLOADER]
 
     print(f"Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True)
