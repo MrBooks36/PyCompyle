@@ -74,38 +74,36 @@ def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
 
 def compress_with_upx(folder_path):
     extensions = [".exe", ".dll", ".pyd", ".so"]
-
     upx_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "PyCompyle.cache", "upx.exe")
     if not os.path.exists(upx_path):
-        info("UPX not found, downloading...")
+        logging.info("UPX not found, downloading...")
         upx_path = install_upx()
         if not upx_path:
             logging.error("Failed to install UPX. Compression will be skipped.")
             return
-    
-    # Gather all files to compress
+
     files_to_compress = []
     for root, _, files in os.walk(folder_path):
         for file in files:
-            if any(file.lower().endswith(ext.lower()) for ext in extensions):
-                # Skip common problematic system/runtime files
+            if any(file.lower().endswith(ext) for ext in extensions):
                 if file.lower().startswith(("qwindows", "vcruntime")):
                     continue
                 files_to_compress.append(os.path.join(root, file))
 
     def compress_file(file_path):
-        subprocess.run([upx_path, "--brute", file_path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run([upx_path, "--brute", file_path],
+                       stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL,
+                       check=False)
 
-
-    with ThreadPoolExecutor() as executor:
-        # Submit all tasks to the executor
-        futures = {executor.submit(compress_file, file_path): file_path for file_path in files_to_compress}
-        
-        # Use tqdm to show progress
+    # throttle parallel jobs
+    max_workers = max(1, os.cpu_count() // 2)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(compress_file, f): f for f in files_to_compress}
         with tqdm(total=len(files_to_compress), desc="INFO: Compressing binary files with UPX", unit="file") as pbar:
             for future in as_completed(futures):
                 try:
-                    future.result()  # Catch exceptions raised during compression
+                    future.result()
                 except Exception as e:
                     logging.error(f"Error compressing {futures[future]}: {e}")
                 pbar.update(1)
