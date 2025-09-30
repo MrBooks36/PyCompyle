@@ -16,11 +16,8 @@ def find_dlls_with_phrase(directory, phrase):
 
 def copy_python_executable(folder_path):
     python_executable = sys.executable
-    if not os.path.basename(python_executable) == 'python.exe':
-        logging.error('Python interpreter must be named "python.exe".')
-        sys.exit(1)
 
-    shutil.copy(python_executable, folder_path)
+    shutil.copy(python_executable, os.path.join(folder_path, "python.exe"))
     info(f"Copied Python executable to {folder_path}")
 
     python_dir = os.path.dirname(python_executable)
@@ -33,7 +30,7 @@ def copy_python_executable(folder_path):
     
     # PyCompyle.utils special case
     os.makedirs(os.path.join(folder_path, 'PyCompyle'))
-    shutil.copy2(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "util.py"), os.path.join(folder_path, "PyCompyle"))         # type: ignore
+    shutil.copy2(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "util.py"), os.path.join(folder_path, "PyCompyle"))
 
 def copy_tk(folder_path):
     try:
