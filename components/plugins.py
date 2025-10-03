@@ -62,3 +62,13 @@ def load_modified_args(args):
                 if v is not None:
                     base[k] = v
     return argparse.Namespace(**base)
+
+
+def run_startup_code():
+    for plugin in plugins:
+        code = importlib.machinery.SourceFileLoader("plugin", plugin).load_module()
+        if not hasattr(code, "init"):
+            continue
+        source = inspect.getsource(code.init)
+        body = textwrap.dedent("\n".join(source.splitlines()[1:]))
+        yield body

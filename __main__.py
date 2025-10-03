@@ -5,13 +5,13 @@ try:
     from components.imports import importcheck
     from components.copylogic import exclude_pattens
     from components import makexe, copylogic
-    from components.plugins import load_plugin, load_modified_args
+    from components.plugins import load_plugin, load_modified_args, run_startup_code
 except: 
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components import makexe, copylogic  # type: ignore
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components.copylogic import exclude_pattens # type: ignore
-    from PyCompyle.components.plugins import load_plugin # type: ignore
+    from PyCompyle.components.plugins import load_plugin, load_modified_args, run_startup_code # type: ignore
 
 
 exclude_pattens = ['__pycache__', '.git', '.github', '.gitignore', 'readme*', 'licence*', '.vscode']
@@ -86,6 +86,8 @@ def main():
             sys.exit(1) 
 
     args = load_modified_args(args)
+
+    exec('\n'.join(run_startup_code()), globals(), locals())
 
     if args.debug:
         args.verbose = True

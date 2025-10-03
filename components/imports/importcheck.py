@@ -7,7 +7,7 @@ except: from PyCompyle.components.imports import getimports
 try:
  from PyCompyle.components import download
 except ImportError:
- import download
+ from components import download
 
 def load_linked_imports(force_refresh=False):
     local_appdata = os.environ.get("LOCALAPPDATA", "")
