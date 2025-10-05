@@ -30,7 +30,6 @@ def copy_python_executable(folder_path):
     
     # PyCompyle.utils special case
     os.makedirs(os.path.join(folder_path, 'PyCompyle'))
-    shutil.copy2(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "util.py"), os.path.join(folder_path, "PyCompyle"))
 
 def copy_tk(folder_path):
     try:

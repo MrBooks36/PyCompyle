@@ -72,3 +72,22 @@ def run_startup_code():
         source = inspect.getsource(code.init)
         body = textwrap.dedent("\n".join(source.splitlines()[1:]))
         yield body
+
+
+def run_halfway_code():
+    for plugin in plugins:
+        code = importlib.machinery.SourceFileLoader("plugin", plugin).load_module()
+        if not hasattr(code, "midway"):
+            continue
+        source = inspect.getsource(code.init)
+        body = textwrap.dedent("\n".join(source.splitlines()[1:]))
+        yield body
+
+def run_cleanup_code():
+    for plugin in plugins:
+        code = importlib.machinery.SourceFileLoader("plugin", plugin).load_module()
+        if not hasattr(code, "midway"):
+            continue
+        source = inspect.getsource(code.init)
+        body = textwrap.dedent("\n".join(source.splitlines()[1:]))
+        yield body

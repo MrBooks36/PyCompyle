@@ -2,9 +2,11 @@ import os, subprocess, py_compile, shutil, logging, time, tempfile, sys
 try:
  from components.download import download_and_extract_zip
  from components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
+ from components.plugins import run_cleanup_code
 except ImportError:
- from PyCompyle.components.download import download_and_extract_zip
- from PyCompyle.components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
+ from PyCompyle.components.download import download_and_extract_zip # type: ignore
+ from PyCompyle.components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx # type: ignore
+ from PyCompyle.components.plugins import run_cleanup_code # type: ignore
 from logging import info, error
 
 MAX_RETRIES = 5
@@ -193,5 +195,6 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
         shutil.rmtree(folder_path)
         os.remove(f"{folder_name}.zip")
     if zip and not keepfiles:
+        exec('\n'.join(run_cleanup_code()), globals(), locals())
         info('Cleaning up...')
         shutil.rmtree(folder_path)

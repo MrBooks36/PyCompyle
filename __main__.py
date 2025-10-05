@@ -1,17 +1,17 @@
-import os, sys, platform, shutil, logging, argparse
+import os, sys, platform, subprocess, shutil, logging, argparse
 from getpass import getpass
 from logging import info
 try:
     from components.imports import importcheck
     from components.copylogic import exclude_pattens
     from components import makexe, copylogic
-    from components.plugins import load_plugin, load_modified_args, run_startup_code
+    from components.plugins import load_plugin, load_modified_args, run_startup_code, run_halfway_code
 except: 
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components import makexe, copylogic  # type: ignore
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components.copylogic import exclude_pattens # type: ignore
-    from PyCompyle.components.plugins import load_plugin, load_modified_args, run_startup_code # type: ignore
+    from PyCompyle.components.plugins import load_plugin, load_modified_args, run_startup_code, run_halfway_code # type: ignore
 
 
 exclude_pattens = ['__pycache__', '.git', '.github', '.gitignore', 'readme*', 'licence*', '.vscode']
@@ -65,6 +65,7 @@ def main():
     parser.add_argument('--uac', '-uac', action='store_true', help='Add UAC to the EXE', default=False)
     parser.add_argument('--package', '-p', action='append', help='Include a package that might have been missed.', default=[])
     parser.add_argument('--plugin', '-pl', action='append', help='Load a plugin by path or name for built-in plugins', default=[])
+    parser.add_argument('--midwaycommand', '-m', help='Run a CMD command or batch script before building the EXE', default=None)
     parser.add_argument('--bootloader', help='Use a custom bootloader instead of the default ones (--uac and --windowed will not work as it must be built into the custom bootloader)', default=None)
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output.', default=False)
     parser.add_argument('--windowed', '-w', action='store_true', help='Disable console', default=False)
@@ -143,8 +144,12 @@ def main():
     info(f"Packaged script copied to {destination_file_path}")
 
     info(f"Packaging complete: {folder_path}")
+    exec('\n'.join(run_halfway_code()), globals(), locals())
+    if args.midwaycommand:
+        info(f"Running midway command: {args.midwaycommand}")
+        subprocess.run(args.midwaycommand, shell=True)
     if not args.noconfirm:
-        getpass('Press Enter to continue wrapping the EXE')
+        getpass('Press Enter to continue building the EXE')
     makexe.main(folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip, bat=args.bat, disable_compiling=args.disable_compile, disable_compressing=args.disable_compressing, disable_password=args.disable_password, bootloader=args.bootloader)
 
 if __name__ == "__main__":
