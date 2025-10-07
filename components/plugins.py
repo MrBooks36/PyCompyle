@@ -51,18 +51,6 @@ def get_special_cases():
 
         yield (import_name, body, top, continue_after)
 
-def load_modified_args(args):
-    base = vars(args).copy()
-    for plugin in plugins:
-        code = importlib.machinery.SourceFileLoader("plugin", plugin).load_module()
-        if hasattr(code, "modify_args"):
-            mod = code.modify_args(args)
-            for k, v in vars(mod).items():
-                # replace only when plugin supplies a non-None value
-                if v is not None:
-                    base[k] = v
-    return argparse.Namespace(**base)
-
 
 def run_startup_code():
     for plugin in plugins:
@@ -71,7 +59,7 @@ def run_startup_code():
             continue
         source = inspect.getsource(code.init)
         body = textwrap.dedent("\n".join(source.splitlines()[1:]))
-        yield body
+        yield body + "\n"
 
 
 def run_halfway_code():
@@ -81,13 +69,13 @@ def run_halfway_code():
             continue
         source = inspect.getsource(code.init)
         body = textwrap.dedent("\n".join(source.splitlines()[1:]))
-        yield body
+        yield body + "\n"
 
 def run_cleanup_code():
     for plugin in plugins:
         code = importlib.machinery.SourceFileLoader("plugin", plugin).load_module()
-        if not hasattr(code, "midway"):
+        if not hasattr(code, "cleanup"):
             continue
-        source = inspect.getsource(code.init)
+        source = inspect.getsource(code.cleanup)
         body = textwrap.dedent("\n".join(source.splitlines()[1:]))
-        yield body
+        yield body + "\n"

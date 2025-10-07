@@ -130,7 +130,7 @@ def add_icon_to_executable(name, icon_path, folder):
     subprocess.run(command, shell=True)
 
 
-def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False, bat=False, disable_compiling=False, disable_compressing=False, disable_password=False, bootloader=None):
+def main(folder_path, upx_threads, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False, bat=False, disable_compiling=False, disable_compressing=False, disable_password=False, bootloader=None):
     setup_logging()
     folder_name = os.path.basename(folder_path).replace('.build', '')
 
@@ -146,7 +146,7 @@ def main(folder_path, no_console=False, keepfiles=False, icon_path=None, uac=Fal
     
 
     if not disable_compressing:
-        compress_with_upx(folder_path)
+        compress_with_upx(folder_path, upx_threads)
         compress_top_level_pyc(os.path.join(folder_path, "Lib"), output_name=os.path.join(folder_path, "Lib_c"))
     
     if not folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not disable_password else None)

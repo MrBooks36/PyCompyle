@@ -118,15 +118,17 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
     special_cases = list(get_special_cases())
 
     for module_name in cleaned_modules:
-        if module_name == '__main__' or module_name == 'PyCompyle':
+        if module_name == '__main__':
             continue
 
         ran_plugin = False
         for import_name, body, top, continue_after in special_cases:
-            if module_name == import_name or module_name == "__main__":
+            skip = []
+            if module_name == import_name and import_name not in skip:
                 ran_plugin = True
                 if top:
                     exec(body, globals(), locals())
+                    skip.append(import_name)
                 if not continue_after:
                     continue
         else:
@@ -178,9 +180,11 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
 
         # execute plugin code here if it had bottom placement
         if ran_plugin:
+            skip = []
             for import_name, body, top, continue_after in special_cases:
-                if module_name == import_name and not top:
+                if module_name == import_name and not top and import_name not in skip:
                     exec(body, globals(), locals())
+                    skip.append(import_name)
 
 
 

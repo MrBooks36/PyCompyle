@@ -5,13 +5,13 @@ try:
     from components.imports import importcheck
     from components.copylogic import exclude_pattens
     from components import makexe, copylogic
-    from components.plugins import load_plugin, load_modified_args, run_startup_code, run_halfway_code
+    from components.plugins import load_plugin, run_startup_code, run_halfway_code
 except: 
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components import makexe, copylogic  # type: ignore
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components.copylogic import exclude_pattens # type: ignore
-    from PyCompyle.components.plugins import load_plugin, load_modified_args, run_startup_code, run_halfway_code # type: ignore
+    from PyCompyle.components.plugins import load_plugin,  run_startup_code, run_halfway_code # type: ignore
 
 
 exclude_pattens = ['__pycache__', '.git', '.github', '.gitignore', 'readme*', 'licence*', '.vscode']
@@ -71,6 +71,7 @@ def main():
     parser.add_argument('--windowed', '-w', action='store_true', help='Disable console', default=False)
     parser.add_argument('--keepfiles', '-k', action='store_true', help='Keep the build files', default=False)
     parser.add_argument('--copy', '-copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
+    parser.add_argument('--upx-threads', help='How many threads to use when compressing with UPX (More=faster but more straining. Less=slower but less straining)', default=False)
     parser.add_argument('--disable-compile', action='store_true', help='Disable compiling Lib to .pyc files (useful for debugging)', default=False)
     parser.add_argument('--disable-compressing', action='store_true', help='Disable compressing files', default=False)
     parser.add_argument('--disable-password', action='store_true', help='Disable the password on the onefile EXE', default=False)
@@ -78,15 +79,18 @@ def main():
     parser.add_argument('--force-refresh', action='store_true', help='Remove the PyCompyle.cache folder and reinstall components', default=False)
     parser.add_argument( '--debug', action='store_true', help='Enables all debugging tools: --verbose --keepfiles --folder and disables --windowed and --zip', default=False)
     args = parser.parse_args()
+    if args.debug:
+        args.verbose = True
+    
     setup_logging(args.verbose)
+
     for plugin in args.plugin:
         try:
             load_plugin(plugin)
         except Exception as e:
             logging.error(f"Failed to load plugin '{plugin}': {e}")
-            sys.exit(1) 
+            sys.exit(1)
 
-    args = load_modified_args(args)
 
     exec('\n'.join(run_startup_code()), globals(), locals())
 
@@ -141,16 +145,16 @@ def main():
 
     destination_file_path = os.path.join(folder_path, "__main__.py")
     shutil.copyfile(source_file_path, destination_file_path)
-    info(f"Packaged script copied to {destination_file_path}")
+    info(f"Script copied to {destination_file_path}")
 
-    info(f"Packaging complete: {folder_path}")
+    info(f"Gathering requirements complete: {folder_path}")
     exec('\n'.join(run_halfway_code()), globals(), locals())
     if args.midwaycommand:
         info(f"Running midway command: {args.midwaycommand}")
         subprocess.run(args.midwaycommand, shell=True)
     if not args.noconfirm:
         getpass('Press Enter to continue building the EXE')
-    makexe.main(folder_path, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip, bat=args.bat, disable_compiling=args.disable_compile, disable_compressing=args.disable_compressing, disable_password=args.disable_password, bootloader=args.bootloader)
+    makexe.main(folder_path, args.upx_threads, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip, bat=args.bat, disable_compiling=args.disable_compile, disable_compressing=args.disable_compressing, disable_password=args.disable_password, bootloader=args.bootloader,)
 
 if __name__ == "__main__":
     main()

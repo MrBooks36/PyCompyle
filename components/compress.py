@@ -72,7 +72,7 @@ def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
     # Delete the temporary Lib_c folder
     shutil.rmtree(lib_c_path)
 
-def compress_with_upx(folder_path):
+def compress_with_upx(folder_path, threads):
     extensions = [".exe", ".dll", ".pyd", ".so"]
     upx_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "PyCompyle.cache", "upx.exe")
     if not os.path.exists(upx_path):
@@ -93,11 +93,10 @@ def compress_with_upx(folder_path):
     def compress_file(file_path):
         subprocess.run([upx_path, "--brute", file_path],
                        stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL,
-                       check=False)
+                       stderr=subprocess.DEVNULL)
 
     # throttle parallel jobs
-    max_workers = max(1, os.cpu_count() // 2)
+    max_workers = max(1, os.cpu_count() // 2) if not threads else int(threads)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(compress_file, f): f for f in files_to_compress}
         with tqdm(total=len(files_to_compress), desc="INFO: Compressing binary files with UPX", unit="file") as pbar:
