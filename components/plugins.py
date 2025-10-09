@@ -1,6 +1,5 @@
 import os, sys, logging, inspect, textwrap
 import importlib.machinery
-import argparse
 from logging import info
 
 plugins = []
@@ -71,10 +70,10 @@ def run_halfway_code():
         body = textwrap.dedent("\n".join(source.splitlines()[1:]))
         yield body + "\n"
 
-def run_cleanup_code():
+def run_end_code():
     for plugin in plugins:
         code = importlib.machinery.SourceFileLoader("plugin", plugin).load_module()
-        if not hasattr(code, "cleanup"):
+        if not hasattr(code, "end"):
             continue
         source = inspect.getsource(code.cleanup)
         body = textwrap.dedent("\n".join(source.splitlines()[1:]))
