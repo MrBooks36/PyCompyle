@@ -97,6 +97,7 @@ def compress_with_upx(folder_path, threads):
 
     # throttle parallel jobs
     max_workers = max(1, os.cpu_count() // 2) if not threads else int(threads)
+    logging.debug(f'Using {max_workers} threads for UPX compression')
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(compress_file, f): f for f in files_to_compress}
         with tqdm(total=len(files_to_compress), desc="INFO: Compressing binary files with UPX", unit="file") as pbar:

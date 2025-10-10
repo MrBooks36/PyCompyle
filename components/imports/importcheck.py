@@ -4,17 +4,15 @@ from logging import info
 
 try:from components.imports import getimports
 except: from PyCompyle.components.imports import getimports
-try:
- from PyCompyle.components import download
+try: from components import download
 except ImportError:
- from components import download
+ from PyCompyle.components import download
 
 def load_linked_imports(force_refresh=False):
     local_appdata = os.environ.get("LOCALAPPDATA", "")
     cache_dir = os.path.join(local_appdata, "PyCompyle.cache")
     cache_file = os.path.join(cache_dir, "linked_imports.json")
     timestamp_file = os.path.join(cache_dir, "linked_imports.timestamp")
-    github_url = "https://raw.githubusercontent.com/MrBooks36/PyCompyle/main/linked_imports.json"
     refresh_interval = timedelta(hours=24)
     local_json = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "linked_imports.json") # type: ignore
     if force_refresh:
@@ -22,7 +20,7 @@ def load_linked_imports(force_refresh=False):
 
     os.makedirs(cache_dir, exist_ok=True)
 
-    needs_refresh = not os.path.exists(cache_file)
+    needs_refresh = not os.path.exists(cache_file) or not os.path.exists(timestamp_file)
     if not needs_refresh and os.path.exists(timestamp_file):
         try:
             with open(timestamp_file, "r") as tf:
@@ -35,7 +33,7 @@ def load_linked_imports(force_refresh=False):
             needs_refresh = True
 
     if needs_refresh:
-        download.download_and_update(github_url, cache_dir, cache_file, timestamp_file)
+        download.download_and_update_linked_imports(cache_file, timestamp_file)
 
     if os.path.exists(local_json) and os.path.exists(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "localjson")): # type: ignore
         try:

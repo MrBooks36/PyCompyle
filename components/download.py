@@ -2,12 +2,13 @@ import os, requests, zipfile, logging, re, io
 from datetime import datetime, timezone
 from logging import info
 
-def download_and_extract_zip(url, extract_to='resource_hacker'):
-    os.makedirs(extract_to, exist_ok=True)
-    extract_to= os.path.join(extract_to, 'resource_hacker')
-    os.makedirs(extract_to, exist_ok=True)
+def download_resourcehacker(cache_path):
+    url = 'https://www.angusj.com/resourcehacker/resource_hacker.zip'
+    os.makedirs(cache_path, exist_ok=True)
+    cache_path= os.path.join(cache_path, 'resource_hacker')
+    os.makedirs(cache_path, exist_ok=True)
 
-    zip_filename = os.path.join(extract_to, 'resource_hacker.zip')
+    zip_filename = os.path.join(cache_path, 'resource_hacker.zip')
     response = requests.get(url, headers={"User-Agent": "XY"})
     response.raise_for_status()  # Ensure the request was successful
 
@@ -15,13 +16,14 @@ def download_and_extract_zip(url, extract_to='resource_hacker'):
         file.write(response.content)
 
     with zipfile.ZipFile(zip_filename, 'r') as zip_ref:
-        zip_ref.extractall(extract_to)
+        zip_ref.extractall(cache_path)
 
     os.remove(zip_filename)
-    info(f"Files extracted to: {extract_to}")
+    info(f"Files extracted to: {cache_path}")
 
 
-def download_and_update(github_url="https://raw.githubusercontent.com/MrBooks36/PyCompyle/main/linked_imports.json", cache_dir="cache", cache_file="linked_imports.json", timestamp_file="linked_imports_timestamp.txt"):
+def download_and_update_linked_imports(cache_file="linked_imports.json", timestamp_file="linked_imports_timestamp.txt"):
+    github_url="https://raw.githubusercontent.com/MrBooks36/PyCompyle/main/linked_imports.json"
     info('Refreshing linked_imports.json')
     try:
         logging.debug(f"Downloading linked_imports.json from GitHub: {github_url}")
@@ -36,17 +38,12 @@ def download_and_update(github_url="https://raw.githubusercontent.com/MrBooks36/
         logging.warning(f"Failed to download linked_imports.json: {e}")
 
 
-def install_upx(dest_folder=None):
-    # Default to %LOCALAPPDATA%\PyCompyle
-    if dest_folder is None:
-        localappdata = os.environ.get("LOCALAPPDATA")
-        if not localappdata:
-            raise EnvironmentError("LOCALAPPDATA not found.")
-        dest_folder = os.path.join(localappdata, "PyCompyle.cache")
+def install_upx():
+    localappdata = os.environ.get("LOCALAPPDATA")
+    dest_folder = os.path.join(localappdata, "PyCompyle.cache")
 
     os.makedirs(dest_folder, exist_ok=True)
 
-    # Get latest release page
     releases_url = "https://github.com/upx/upx/releases/latest"
     resp = requests.get(releases_url, timeout=15)
     resp.raise_for_status()
@@ -57,7 +54,8 @@ def install_upx(dest_folder=None):
     if not match:
         match = re.search(r"https://github\.com/upx/upx/releases/download/[^\"']+upx-[^\"']+-win32\.zip", html)
     if not match:
-        raise RuntimeError("Could not find UPX Windows release zip.")
+        logging.error("Could not find UPX Windows release zip.")
+        return
 
     zip_url = match.group(0)
 
@@ -69,7 +67,7 @@ def install_upx(dest_folder=None):
     with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
         exe_name = [name for name in zf.namelist() if name.endswith("upx.exe")]
         if not exe_name:
-            raise RuntimeError("upx.exe not found in archive.")
+            raise RuntimeError("upx.exe not found in zip.")
         exe_name = exe_name[0]
 
         zf.extract(exe_name, dest_folder)
@@ -89,7 +87,3 @@ def install_upx(dest_folder=None):
                 pass
 
         return final_path
-        
-
-if __name__ == "__main__":
-    install_upx()

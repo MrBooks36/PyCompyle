@@ -1,10 +1,10 @@
 import os, subprocess, py_compile, shutil, logging, time, tempfile, sys
 try:
- from components.download import download_and_extract_zip
+ from components.download import download_resourcehacker
  from components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
  from components.plugins import run_end_code
 except ImportError:
- from PyCompyle.components.download import download_and_extract_zip # type: ignore
+ from PyCompyle.components.download import download_resourcehacker # type: ignore
  from PyCompyle.components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx # type: ignore
  from PyCompyle.components.plugins import run_end_code # type: ignore
 from logging import info, error
@@ -25,8 +25,6 @@ def zip_embeder(name, exe_file, zip_file):
             with open(zip_file, 'rb') as f_zip:
                 output.write(f_zip.read())
 
-        info(f"Combined executable created: {output_file}")
-
 def delete_pycache(start_dir):
     deleted_count = 0
 
@@ -42,7 +40,7 @@ def delete_pycache(start_dir):
     info(f"Total '__pycache__' folders deleted: {deleted_count}")
 
 
-def create_executable(name,zip_path: str,bootloader: str = None,no_console: bool = False,uac: bool = False,folder: bool = False, folder_path=""):
+def create_executable(name, zip_path, bootloader, no_console, uac, folder, folder_path=""):
     try:
         exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs')  # type: ignore
     except AttributeError:
@@ -80,7 +78,6 @@ def compile_and_replace_py_to_pyc(directory):
             if file.endswith('.py'):
                 py_file_path = os.path.join(root, file)
 
-                # Specify the base directory for temporary files
                 windows_temp_dir = r'C:\Windows\Temp'
                 
                 # Create a temporary directory within C:\Windows\Temp
@@ -122,7 +119,7 @@ def add_icon_to_executable(name, icon_path, folder):
 
     if not os.path.exists(os.path.join(cache_path, 'resource_hacker')):
         info('Downloading ResourceHacker...')
-        download_and_extract_zip('https://www.angusj.com/resourcehacker/resource_hacker.zip', cache_path)
+        download_resourcehacker(cache_path)
 
     r_hacker_path = os.path.join(cache_path, 'resource_hacker', 'ResourceHacker.exe')
     if folder: command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
@@ -130,13 +127,12 @@ def add_icon_to_executable(name, icon_path, folder):
     subprocess.run(command, shell=True)
 
 
-def main(folder_path, upx_threads, no_console=False, keepfiles=False, icon_path=None, uac=False, folder=False, zip=False, bat=False, disable_compiling=False, disable_compressing=False, disable_password=False, bootloader=None):
-    setup_logging()
+def main(folder_path, args):
     folder_name = os.path.basename(folder_path).replace('.build', '')
 
     info('Removing __pycache__ directories...')
     delete_pycache(folder_path)
-    if not disable_compiling:
+    if not args.disable_compile:
      info("Compiling code to PYC files for speed")
      compile_and_replace_py_to_pyc(os.path.join(folder_path, "Lib"))
 
@@ -145,11 +141,11 @@ def main(folder_path, upx_threads, no_console=False, keepfiles=False, icon_path=
         file.write('Dlls\nLib\nLib_c.zip')
     
 
-    if not disable_compressing:
-        compress_with_upx(folder_path, upx_threads)
+    if not args.disable_compressing:
+        compress_with_upx(folder_path, args.upx_threads)
         compress_top_level_pyc(os.path.join(folder_path, "Lib"), output_name=os.path.join(folder_path, "Lib_c"))
     
-    if not folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not disable_password else None)
+    if not args.folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not args.disable_password else None)
     else:
      try:
         shutil.rmtree(folder_name)
@@ -168,34 +164,34 @@ def main(folder_path, upx_threads, no_console=False, keepfiles=False, icon_path=
             logging.critical(f"Failed to rename {folder_path} after {MAX_RETRIES} attempts. Exiting.")
             sys.exit(1)
         time.sleep(RETRY_DELAY)
-    if bat:
+    if args.bat:
         info('Creating Batchfile...')
         with open(os.path.join(folder_path, f'{folder_name}.bat'), 'w') as file:
             file.write('@echo off\n%~dp0\\python.exe %~dp0\\__main__.py')
     else:
         info('Creating executable...')
-        create_executable(folder_name, f"{folder_name}.zip", bootloader, no_console, uac, folder, folder_path)
+        create_executable(folder_name, f"{folder_name}.zip", args.bootloader, args.windowed, args.uac, args.folder, folder_path)
 
-    if icon_path:
-        if os.path.exists(icon_path):
-            info(f'Adding icon: {icon_path}')
-            add_icon_to_executable(folder_name, icon_path, folder)
+    if args.icon:
+        if os.path.exists(args.icon):
+            info(f'Adding icon: {args.icon}')
+            add_icon_to_executable(folder_name, args.icon, args.folder)
         else:
-            error(f'Icon file not found: {icon_path}')
+            error(f'Icon file not found: {args.icon}')
 
     if zip: compress_folder_with_progress(folder_path, folder_name)       
 
-    if not disable_compressing:
+    if not args.disable_compressing:
         info('Compressing onefile exe (No progress available)')
-        if folder: compress_file_with_upx(f"{folder_name}\\{folder_name}.exe")
+        if args.folder: compress_file_with_upx(f"{folder_name}\\{folder_name}.exe")
         else: compress_file_with_upx(f"{folder_name}.exe")
 
     exec('\n'.join(run_end_code()), globals(), locals())
 
-    if not keepfiles and not folder:
+    if not args.keepfiles and not args.folder:
         info('Cleaning up...')
         shutil.rmtree(folder_path)
         os.remove(f"{folder_name}.zip")
-    if zip and not keepfiles:
+    if args.zip and not args.keepfiles:
         info('Cleaning up...')
         shutil.rmtree(folder_path)

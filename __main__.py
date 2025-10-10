@@ -154,7 +154,7 @@ def main():
         subprocess.run(args.midwaycommand, shell=True)
     if not args.noconfirm:
         getpass('Press Enter to continue building the EXE')
-    makexe.main(folder_path, args.upx_threads, args.windowed, args.keepfiles, args.icon, uac=args.uac, folder=args.folder, zip=args.zip, bat=args.bat, disable_compiling=args.disable_compile, disable_compressing=args.disable_compressing, disable_password=args.disable_password, bootloader=args.bootloader,)
+    makexe.main(folder_path, args)
 
 if __name__ == "__main__":
     main()
