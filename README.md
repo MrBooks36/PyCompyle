@@ -1,6 +1,6 @@
 # PyCompyle <span style="font-size: 55%;">by MrBooks36</span>
 
-Package a Python script into an executable (EXE) with its dependencies without being flagged by Windows Defender.
+Package a Python script into an executable (EXE) with its dependencies while keeping it is a as raw form as possible.
 
 ## Features
 
