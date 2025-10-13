@@ -1,4 +1,4 @@
-import os, shutil, logging, pyzipper, subprocess
+import os, shutil, logging, pyzipper, subprocess, hashlib, time
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging import info
@@ -73,14 +73,41 @@ def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
     shutil.rmtree(lib_c_path)
 
 def compress_with_upx(folder_path, threads):
+    if threads == None:
+        return
+
     extensions = [".exe", ".dll", ".pyd", ".so"]
-    upx_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "PyCompyle.cache", "upx.exe")
+    base_cache = os.path.join(os.environ.get("LOCALAPPDATA", ""), "PyCompyle.cache")
+    upx_path = os.path.join(base_cache, "upx.exe")
+    upx_cache = os.path.join(base_cache, "upxcache")
+    os.makedirs(upx_cache, exist_ok=True)
+
+    now = time.time()
+    max_age = 30 * 24 * 3600  # 30 days in seconds
+    for name in os.listdir(upx_cache):
+        path = os.path.join(upx_cache, name)
+        try:
+            if os.path.isfile(path):
+                last_used = os.path.getatime(path)
+                if now - last_used > max_age:
+                    os.remove(path)
+                    logging.debug(f"Removed stale cache file: {name}")
+        except Exception as e:
+            logging.warning(f"Failed to check/remove cache file {name}: {e}")
+
     if not os.path.exists(upx_path):
-        logging.info("UPX not found, downloading...")
+        info("UPX not found, downloading...")
         upx_path = install_upx()
         if not upx_path:
             logging.error("Failed to install UPX. Compression will be skipped.")
             return
+
+    def hash_file(path):
+        h = hashlib.sha256()
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(65536), b""):
+                h.update(chunk)
+        return h.hexdigest()
 
     files_to_compress = []
     for root, _, files in os.walk(folder_path):
@@ -91,16 +118,33 @@ def compress_with_upx(folder_path, threads):
                 files_to_compress.append(os.path.join(root, file))
 
     def compress_file(file_path):
-        subprocess.run([upx_path, "--brute", file_path],
-                       stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
+        file_hash = hash_file(file_path)
+        cached_file = os.path.join(upx_cache, f"{file_hash}.bin")
 
-    # throttle parallel jobs
+        if os.path.exists(cached_file):
+            os.utime(cached_file, None)  # refresh last access time
+            shutil.copy2(cached_file, file_path)
+            return
+
+        temp_compressed = file_path + ".tmp"
+        try:
+            subprocess.run([upx_path, "--brute", "-o", temp_compressed, file_path],
+                           stdout=subprocess.DEVNULL,
+                           stderr=subprocess.DEVNULL,
+                           check=True)
+            shutil.move(temp_compressed, file_path)
+            shutil.copy2(file_path, cached_file)
+        except subprocess.CalledProcessError:
+            if os.path.exists(temp_compressed):
+                os.remove(temp_compressed)
+
     max_workers = max(1, os.cpu_count() // 2) if not threads else int(threads)
     logging.debug(f'Using {max_workers} threads for UPX compression')
+
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(compress_file, f): f for f in files_to_compress}
-        with tqdm(total=len(files_to_compress), desc="INFO: Compressing binary files with UPX", unit="file") as pbar:
+        with tqdm(total=len(files_to_compress),
+                  desc="INFO: Compressing binary files with UPX", unit="file") as pbar:
             for future in as_completed(futures):
                 try:
                     future.result()

@@ -30,6 +30,7 @@ def copy_python_executable(folder_path):
     
     # PyCompyle.utils special case
     os.makedirs(os.path.join(folder_path, 'PyCompyle'))
+    shutil.copy2(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "util.py"), os.path.join(folder_path, "PyCompyle"))
 
 def copy_tk(folder_path):
     try:
@@ -118,7 +119,7 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
     special_cases = list(get_special_cases())
 
     for module_name in cleaned_modules:
-        if module_name == '__main__':
+        if module_name == '__main__' or module_name == 'PyCompyle':
             continue
 
         ran_plugin = False
