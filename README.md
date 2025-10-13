@@ -1,6 +1,6 @@
 # PyCompyle <span style="font-size: 55%;">by MrBooks36</span>
 
-Package a Python script into an executable (EXE) with its dependencies while keeping it is a as raw form as possible.
+Package a Python script into an executable (EXE) with its dependencies while keeping the project as close to its raw form as possible.
 
 ## Features
 
