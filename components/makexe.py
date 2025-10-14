@@ -177,14 +177,14 @@ def main(folder_path, args):
             info(f'Adding icon: {args.icon}')
             add_icon_to_executable(folder_name, args.icon, args.folder)
         else:
-            error(f'Icon file not found: {args.icon}')
-
-    if args.zip: compress_folder_with_progress(folder_path, folder_name)       
+            error(f'Icon file not found: {args.icon}')   
 
     if not args.disable_compressing:
         info('Compressing onefile exe (No progress available)')
         if args.folder: compress_file_with_upx(f"{folder_name}\\{folder_name}.exe")
         else: compress_file_with_upx(f"{folder_name}.exe")
+
+    if args.zip: compress_folder_with_progress(folder_path, folder_name)        
 
     exec('\n'.join(run_end_code()), globals(), locals())
 
