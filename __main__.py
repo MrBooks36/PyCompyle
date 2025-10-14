@@ -5,7 +5,7 @@ try:
     from components.imports import importcheck
     from components.copylogic import exclude_pattens
     from components import makexe, copylogic
-    from components.plugins import load_plugin, run_startup_code, run_halfway_code
+    from components.plugins import load_plugin, apply_monkey_patches, run_startup_code, run_halfway_code
 except: 
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components import makexe, copylogic  # type: ignore
@@ -71,7 +71,7 @@ def main():
     parser.add_argument('--windowed', '-w', action='store_true', help='Disable console', default=False)
     parser.add_argument('--keepfiles', '-k', action='store_true', help='Keep the build files', default=False)
     parser.add_argument('--copy', '-copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
-    parser.add_argument('--upx-threads', help='How many threads to use when compressing with UPX (More=faster but more straining. Less=slower but less straining)', default=False)
+    parser.add_argument('--upx-threads', help='How many threads to use when compressing with UPX.  (More=faster but more straining. Less=slower but less straining)', default=False)
     parser.add_argument('--disable-compile', action='store_true', help='Disable compiling Lib to .pyc files (useful for debugging)', default=False)
     parser.add_argument('--disable-compressing', action='store_true', help='Disable compressing files', default=False)
     parser.add_argument('--disable-password', action='store_true', help='Disable the password on the onefile EXE', default=False)
@@ -87,6 +87,7 @@ def main():
     for plugin in args.plugin:
         try:
             load_plugin(plugin)
+            apply_monkey_patches()
         except Exception as e:
             logging.error(f"Failed to load plugin '{plugin}': {e}")
             sys.exit(1)

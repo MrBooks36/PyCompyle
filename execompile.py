@@ -6,12 +6,18 @@ import sys
 VENV_DIR = "venv"
 REQUIRED_PACKAGES = ["PyInstaller", "pyzipper"]
 
+EXEs = [
+    "bootloader.exe",
+    "bootloaderw.exe",
+    "bootloader_uac.exe",
+    "bootloaderw_uac.exe"
+]
+
 # ---- Ensure EXEs directory exists ----
 os.makedirs("EXEs", exist_ok=True)
 
 # ---- Remove old EXEs ----
-for exe in ["bootloader.exe", "bootloaderw.exe",
-            "bootloader_uac.exe", "bootloaderw_uac.exe"]:
+for exe in EXEs:
     exe_path = os.path.join("EXEs", exe)
     if os.path.exists(exe_path):
         os.remove(exe_path)
@@ -26,18 +32,31 @@ if not os.path.exists(VENV_DIR):
 # ---- Locate venv Python ----
 PYTHON_EXE = os.path.join(VENV_DIR, "Scripts", "python.exe")
 
-# ---- 2. Ensure required packages are installed ----
-for pkg in REQUIRED_PACKAGES:
-    try:
-        subprocess.run([PYTHON_EXE, "-m", pkg, "--version"],
-                       check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        print(f"Installing {pkg} in the virtual environment...")
-        subprocess.run([PYTHON_EXE, "-m", "pip", "install", "--upgrade", "pip"], check=True)
-        subprocess.run([PYTHON_EXE, "-m", "pip", "install", pkg], check=True)
+# ---- 2. Try to install required packages in venv ----
+def install_packages(python_exe):
+    for pkg in REQUIRED_PACKAGES:
+        try:
+            subprocess.run([python_exe, "-m", "pip", "show", pkg],
+                           check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            print(f"Installing {pkg}...")
+            try:
+                subprocess.run([python_exe, "-m", "pip", "install", "--upgrade", "pip"], check=True)
+                subprocess.run([python_exe, "-m", "pip", "install", pkg], check=True)
+            except subprocess.CalledProcessError:
+                print(f"Failed to install {pkg} with {python_exe}.")
+                return False
+    return True
+
+# ---- Attempt to use venv or fallback to system Python ----
+if not install_packages(PYTHON_EXE):
+    print("Falling back to system-wide Python environment.")
+    PYTHON_EXE = sys.executable
+    if not install_packages(PYTHON_EXE):
+        sys.exit("Failed to install required packages in both virtual and system-wide environments.")
 
 def compile_bootloader(pyinstaller_args, output_name):
-    """Run PyInstaller inside the venv to compile the bootloader."""
+    """Compile the bootloader using PyInstaller."""
     cmd = [
         PYTHON_EXE, "-m", "PyInstaller",
         "--onefile", "-i", "NONE", "--strip",
@@ -69,6 +88,46 @@ compile_bootloader([], "bootloader.exe")                    # Regular
 compile_bootloader(["--noconsole"], "bootloaderw.exe")      # Windowed
 compile_bootloader(["--uac-admin"], "bootloader_uac.exe")   # UAC
 compile_bootloader(["--noconsole", "--uac-admin"], "bootloaderw_uac.exe")  # Windowed UAC
+
+
+# --- 4. Sign the bootloaders (not required and mainly for MrBooks36 to use) ---
+pfx_path = os.path.join(os.path.expanduser("~"), "MrBooks36.pfx")
+
+# Ensure the files and paths exist
+if not os.path.exists(pfx_path):
+    print(f"PFX file not found at {pfx_path} skipping...")
+    sys.exit(0)
+
+# Securely retrieve sensitive information from environment variables
+pfx_password = os.getenv('PFX_PASSWORD')
+if not pfx_password:
+    raise EnvironmentError("PFX_PASSWORD environment variable not set")
+
+# Define the path to the executables directory
+EXEs_directory = os.path.abspath('EXEs')
+
+# Ensure the directory exists
+if not os.path.isdir(EXEs_directory):
+    raise FileNotFoundError(f"Executable directory not found at {EXEs_directory}")
+
+# Loop through files and sign them
+for exe in EXEs:
+    exe_path = os.path.join(EXEs_directory, exe)
+
+    # Validate that the executable exists
+    if os.path.exists(exe_path):
+        try:
+            subprocess.run(
+                [
+                    'signtool', 'sign', '/f', pfx_path, '/p', pfx_password, 
+                    '/fd', 'SHA256', exe_path
+                ],
+                check=True
+            )
+        except subprocess.CalledProcessError as e:
+            print(f"Signing failed for {exe_path}: {e}")
+    else:
+        print(f"Executable not found: {exe_path}")
 
 # ---- Final cleanup ----
 shutil.rmtree("dist", ignore_errors=True)

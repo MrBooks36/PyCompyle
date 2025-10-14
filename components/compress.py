@@ -51,7 +51,7 @@ def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
         if os.path.isfile(item_path) and item_path.endswith((".pyc", ".py")):
             shutil.move(item_path, lib_c_path)
 
-    # Move top-level folders containing only .pyc files
+    # Move top-level folders containing only .pyc or py files
     for item in os.listdir(lib_folder):
         item_path = os.path.join(lib_folder, item)
         if os.path.isdir(item_path):
@@ -66,16 +66,13 @@ def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
             if not os.listdir(dir_path):
                 shutil.rmtree(dir_path)
 
-    # Compress Lib_c using your existing function (no password)
-    compress_folder_with_progress(lib_c_path, output_name, password=None, text='INFO: Compressing top-level PYC files')
+    compress_folder_with_progress(lib_c_path, output_name, password=None, text='INFO: Compressing top-level files')
 
-    # Delete the temporary Lib_c folder
     shutil.rmtree(lib_c_path)
 
 def compress_with_upx(folder_path, threads):
-    if threads == None:
-        return
-
+    max_workers = max(1, os.cpu_count() // 2) if not threads else int(threads)
+    if max_workers == 0: return
     extensions = [".exe", ".dll", ".pyd", ".so"]
     base_cache = os.path.join(os.environ.get("LOCALAPPDATA", ""), "PyCompyle.cache")
     upx_path = os.path.join(base_cache, "upx.exe")
@@ -138,7 +135,6 @@ def compress_with_upx(folder_path, threads):
             if os.path.exists(temp_compressed):
                 os.remove(temp_compressed)
 
-    max_workers = max(1, os.cpu_count() // 2) if not threads else int(threads)
     logging.debug(f'Using {max_workers} threads for UPX compression')
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:

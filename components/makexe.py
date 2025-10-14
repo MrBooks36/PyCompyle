@@ -179,7 +179,7 @@ def main(folder_path, args):
         else:
             error(f'Icon file not found: {args.icon}')
 
-    if zip: compress_folder_with_progress(folder_path, folder_name)       
+    if args.zip: compress_folder_with_progress(folder_path, folder_name)       
 
     if not args.disable_compressing:
         info('Compressing onefile exe (No progress available)')
