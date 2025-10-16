@@ -115,7 +115,7 @@ def main():
     info(f"Source file: {source_file_path}")
     if not os.path.exists(source_file_path):
         logging.critical(f"{source_file_path} does not exist")
-        exit()
+        sys.exit(1)
     os.chdir(os.path.dirname(source_file_path))
 
     folder_path = setup_destination_folder(args.source_file)
@@ -145,7 +145,7 @@ def main():
     copylogic.copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir)
 
     destination_file_path = os.path.join(folder_path, "__main__.py")
-    shutil.copyfile(source_file_path, destination_file_path)
+    shutil.copy(source_file_path, destination_file_path)
     info(f"Script copied to {destination_file_path}")
 
     info(f"Gathering requirements complete: {folder_path}")

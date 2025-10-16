@@ -72,15 +72,16 @@ def create_executable(name, zip_path, bootloader, no_console, uac, folder, folde
         shutil.copy2(src=bootloader, dst=os.path.join(folder_path, f'{name}.exe'))
 
 
-def compile_and_replace_py_to_pyc(directory):
+def compile_and_replace_py_to_pyc(folder):
+    directory = os.path.join(folder, "Lib")
     for root, _, files in os.walk(directory):
         for file in files:
             if file.endswith('.py'):
                 py_file_path = os.path.join(root, file)
 
                 windows_temp_dir = r'C:\Windows\Temp'
-                
-                # Create a temporary directory within C:\Windows\Temp
+
+                # Create a temporary directory
                 temp_dir = tempfile.mkdtemp(dir=windows_temp_dir)
                 try:
                     temp_file_path = os.path.join(temp_dir, file)
@@ -89,10 +90,10 @@ def compile_and_replace_py_to_pyc(directory):
                     shutil.copy2(py_file_path, temp_file_path)
 
                     # Prepare the destination .pyc file path
-                    pyc_file_path = py_file_path + 'c'
+                    pyc_file_path = py_file_path + 'c'  # This assumes a certain style of .pyc path
 
                     try:
-                        # Use relative path for display file name
+                        # Use a relative path for the display file name
                         display_file_path = os.path.relpath(py_file_path, directory)
 
                         # Compile the .py file in the temporary directory
@@ -110,6 +111,23 @@ def compile_and_replace_py_to_pyc(directory):
                     # Clean up the temporary directory
                     shutil.rmtree(temp_dir)
 
+def compile_main(folder):
+    try:
+        main_file_path = os.path.join(folder, '__main__.py')
+        pyc_file_path = main_file_path + 'c'
+
+        windows_temp_dir = r'C:\Windows\Temp'
+        temp_dir = tempfile.mkdtemp(dir=windows_temp_dir)
+        
+        try:
+            temp_file_path = os.path.join(temp_dir, '__main__.py')
+            shutil.copy2(main_file_path, temp_file_path)
+            py_compile.compile(temp_file_path, cfile=pyc_file_path, doraise=True)
+        finally:
+            shutil.rmtree(temp_dir)
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
 
 def add_icon_to_executable(name, icon_path, folder):
     name = os.path.abspath(name)
@@ -134,7 +152,8 @@ def main(folder_path, args):
     delete_pycache(folder_path)
     if not args.disable_compile:
      info("Compiling code to PYC files for speed")
-     compile_and_replace_py_to_pyc(os.path.join(folder_path, "Lib"))
+     compile_and_replace_py_to_pyc(folder_path)
+     compile_main(folder_path)
 
     info('Writing python args')
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
@@ -180,7 +199,7 @@ def main(folder_path, args):
             error(f'Icon file not found: {args.icon}')   
 
     if not args.disable_compressing:
-        info('Compressing onefile exe (No progress available)')
+        info('Compressing executable (No progress available)')
         if args.folder: compress_file_with_upx(f"{folder_name}\\{folder_name}.exe")
         else: compress_file_with_upx(f"{folder_name}.exe")
 
@@ -195,3 +214,5 @@ def main(folder_path, args):
     if args.zip and not args.keepfiles:
         info('Cleaning up...')
         shutil.rmtree(folder_path)
+
+    info("Done!")    

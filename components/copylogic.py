@@ -56,7 +56,7 @@ def copy_tk(folder_path):
                     except IOError as e:
                         print(f"Error copying {item_path} to {destination_path}: {e}")
 
-        info(f'Copied matching directories to {folder_path}')
+        info(f'Copied tcl directories to {folder_path}')
 
     except Exception as e:
         print(f"An unexpected error occurred in copy_tk: {e}")
