@@ -34,14 +34,14 @@ def check_system():
         major_version = int(major_minor[0])
 
         # Check if the major version is 10 or higher, or is 6 and minor version is 3 or higher
-        if major_version > 6 or (major_version == 6 and len(major_minor) > 1 and int(major_minor[1]) >= 3):
+        if major_version > 6:
             return True
 
-    return False  
+    return False
 
 def validate_platform():
     if not check_system():
-        print("PyCompyle is designed to run only on Windows 64-bit.")
+        print("PyCompyle is designed to run only on Windows 10 or higher 64-bit.")
         sys.exit(1)
 
 def setup_destination_folder(source_file):
@@ -71,6 +71,7 @@ def main():
     parser.add_argument('--windowed', '-w', action='store_true', help='Disable console', default=False)
     parser.add_argument('--keepfiles', '-k', action='store_true', help='Keep the build files', default=False)
     parser.add_argument('--copy', '-copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
+    parser.add_argument('--pyarg', '-pyarg', action='append', help='Add arguments to the startup of the python interpreter', default=[])
     parser.add_argument('--upx-threads', help='How many threads to use when compressing with UPX.  (More=faster but more straining. Less=slower but less straining)', default=False)
     parser.add_argument('--disable-compile', action='store_true', help='Disable compiling Lib to .pyc files (useful for debugging)', default=False)
     parser.add_argument('--disable-compressing', action='store_true', help='Disable compressing files', default=False)

@@ -84,9 +84,19 @@ def run_extracted_executable(output_dir):
     except FileNotFoundError:
         print(f"Script path '{script_path}' not found.")
         return
+    
+    pyargs = ['-B']
+    pyargs_file = join(output_dir, 'pyargs')
+
+    if exists(pyargs_file):
+     pyargs = []
+     with open(pyargs_file, 'r') as f:
+        for line in f:
+            pyargs.extend(line.strip().split())
 
     additional_args = argv[1:]
-    run([python_executable, '-B', output_dir] + additional_args)
+
+    run([python_executable] + pyargs + [output_dir] + additional_args)
 
 
 def cleanup_directory(output_dir):

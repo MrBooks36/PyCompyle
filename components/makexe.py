@@ -147,6 +147,9 @@ def add_icon_to_executable(name, icon_path, folder):
 
 def main(folder_path, args):
     folder_name = os.path.basename(folder_path).replace('.build', '')
+    
+    pyargs = []
+    for arg in args.pyarg: pyargs.append(arg)
 
     info('Removing __pycache__ directories...')
     delete_pycache(folder_path)
@@ -158,7 +161,10 @@ def main(folder_path, args):
     info('Writing python args')
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
         file.write('Dlls\nLib\nLib_c.zip')
-    
+    if not args.bat and pyargs:
+     with open(os.path.join(folder_path, 'pyargs'), 'w') as file:
+        for arg in pyargs:
+            file.write(f"{arg}\n")
 
     if not args.disable_compressing:
         compress_with_upx(folder_path, args.upx_threads)
@@ -186,7 +192,7 @@ def main(folder_path, args):
     if args.bat:
         info('Creating Batchfile...')
         with open(os.path.join(folder_path, f'{folder_name}.bat'), 'w') as file:
-            file.write('@echo off\n%~dp0\\python.exe %~dp0\\__main__.py')
+            file.write(f'@echo off\n%~dp0\\python.exe {args} %~dp0\\__main__.py')
     else:
         info('Creating executable...')
         create_executable(folder_name, f"{folder_name}.zip", args.bootloader, args.windowed, args.uac, args.folder, folder_path)
