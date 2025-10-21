@@ -41,7 +41,7 @@ def check_system():
 
 def validate_platform():
     if not check_system():
-        print("PyCompyle is designed to run only on Windows 10 or higher 64-bit.")
+        logging.critical("PyCompyle is designed to run only on Windows 10 or higher 64-bit.")
         sys.exit(1)
 
 def setup_destination_folder(source_file):
@@ -59,7 +59,7 @@ def main():
     parser.add_argument('source_file', help='The Python script to package.')
     parser.add_argument('--noconfirm', '-nc', action='store_true', help='Skip confirmation for wrapping the exe', default=False)
     parser.add_argument('--folder', '-f', action='store_true', help='Build to a folder instead of a onefile exe', default=False)
-    parser.add_argument('--zip', '-zip', action='store_true', help='Build to a zip instead of a onefile exe (Zip version of --folder)', default=False)
+    parser.add_argument('--zip', '-zip', action='store_true', help='Build to a zip instead of a onefile exe. (Zipped file of --folder)', default=False)
     parser.add_argument('--bat', '-bat', action='store_true', help='Use a .bat file for starting the built script instead of a exe for faster start times (Automatically implies --folder)', default=False)
     parser.add_argument('--icon', '-icon', help='Icon for the created EXE', default=None)
     parser.add_argument('--uac', '-uac', action='store_true', help='Add UAC to the EXE', default=False)
@@ -147,9 +147,9 @@ def main():
 
     destination_file_path = os.path.join(folder_path, "__main__.py")
     shutil.copy(source_file_path, destination_file_path)
-    info(f"Script copied to {destination_file_path}")
+    info("Script copied")
 
-    info(f"Gathering requirements complete: {folder_path}")
+    info("Gathering requirements complete")
     exec('\n'.join(run_halfway_code()), globals(), locals())
     if args.midwaycommand:
         info(f"Running midway command: {args.midwaycommand}")

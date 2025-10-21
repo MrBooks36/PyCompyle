@@ -3,10 +3,10 @@ from datetime import datetime, timedelta, timezone
 from logging import info
 
 try:from components.imports import getimports
-except: from PyCompyle.components.imports import getimports
+except: from PyCompyle.components.imports import getimports # type: ignore
 try: from components import download
 except ImportError:
- from PyCompyle.components import download
+ from PyCompyle.components import download # type: ignore
 
 def load_linked_imports(force_refresh=False):
     local_appdata = os.environ.get("LOCALAPPDATA", "")
@@ -38,7 +38,7 @@ def load_linked_imports(force_refresh=False):
     if os.path.exists(local_json) and os.path.exists(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "localjson")): # type: ignore
         try:
             with open(local_json, "r", encoding="utf-8") as f:
-                logging.info("Using local linked_imports.json (same folder as script)")
+                logging.info("Using local linked_imports.json")
                 return json.load(f)
         except Exception as e:
             logging.warning(f"Local linked_imports.json invalid: {e}")    

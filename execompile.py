@@ -90,8 +90,8 @@ compile_bootloader(["--uac-admin"], "bootloader_uac.exe")   # UAC
 compile_bootloader(["--noconsole", "--uac-admin"], "bootloaderw_uac.exe")  # Windowed UAC
 
 
-# --- 4. Sign the bootloaders (not required and mainly for MrBooks36 to use) ---
-pfx_path = os.path.join(os.path.expanduser("~"), "MrBooks36.pfx")
+# --- 4. Sign the bootloaders ---
+pfx_path = os.getenv('PFX_PATH')
 
 # Ensure the files and paths exist
 if not os.path.exists(pfx_path):

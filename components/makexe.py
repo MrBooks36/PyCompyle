@@ -103,31 +103,13 @@ def compile_and_replace_py_to_pyc(folder):
                         os.remove(py_file_path)
 
                     except py_compile.PyCompileError as compile_error:
-                        print(f"Failed to compile {py_file_path}: {compile_error}")
+                        logging.error(f"Failed to compile {py_file_path}: {compile_error}")
                     except Exception as e:
-                        print(f"An error occurred with {py_file_path}: {e}")
+                        error(f"An error occurred with {py_file_path}: {e}")
 
                 finally:
                     # Clean up the temporary directory
                     shutil.rmtree(temp_dir)
-
-def compile_main(folder):
-    try:
-        main_file_path = os.path.join(folder, '__main__.py')
-        pyc_file_path = main_file_path + 'c'
-
-        windows_temp_dir = r'C:\Windows\Temp'
-        temp_dir = tempfile.mkdtemp(dir=windows_temp_dir)
-        
-        try:
-            temp_file_path = os.path.join(temp_dir, '__main__.py')
-            shutil.copy2(main_file_path, temp_file_path)
-            py_compile.compile(temp_file_path, cfile=pyc_file_path, doraise=True)
-        finally:
-            shutil.rmtree(temp_dir)
-
-    except Exception as e:
-        logging.error(f"An error occurred: {e}")
 
 def add_icon_to_executable(name, icon_path, folder):
     name = os.path.abspath(name)
@@ -156,7 +138,6 @@ def main(folder_path, args):
     if not args.disable_compile:
      info("Compiling code to PYC files for speed")
      compile_and_replace_py_to_pyc(folder_path)
-     compile_main(folder_path)
 
     info('Writing python args')
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:

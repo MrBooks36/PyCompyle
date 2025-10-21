@@ -140,12 +140,12 @@ def main():
      run_extracted_executable(output_dir)
      if cleanup_directory(output_dir):
         remove(bat_path)
- elif exists(join(dirname(argv[0]), '__main__.pyc')):
+ elif exists(join(dirname(argv[0]), '__main__.py')):
      rmtree(output_dir)
      folder = dirname(argv[0])
      run_extracted_executable(folder)
  else:
-     print('No emmbeded zip or __main__.pyc found')
+     print('No emmbeded zip or __main__.py found')
 
 
 if __name__ == "__main__":

@@ -39,7 +39,7 @@ def copy_tk(folder_path):
 
         # Check if the path exists to avoid errors.
         if not os.path.exists(tcl_directory):
-            print(f"Directory does not exist: {tcl_directory}")
+            logging.warning(f"TCL directory does not exist: {tcl_directory}")
             return
 
         # Locate and copy directories that match the phrase
@@ -54,65 +54,12 @@ def copy_tk(folder_path):
                             shutil.rmtree(destination_path)
                         shutil.copytree(item_path, os.path.join(destination_path))
                     except IOError as e:
-                        print(f"Error copying {item_path} to {destination_path}: {e}")
+                        logging.error(f"Error copying {item_path} to {destination_path}: {e}")
 
         info(f'Copied tcl directories to {folder_path}')
 
     except Exception as e:
-        print(f"An unexpected error occurred in copy_tk: {e}")
-      
-def copy_linked_imports(linked_imports_file, folder_path, lib_path):
-    try:
-        with open(linked_imports_file, 'r', encoding='utf-8') as f:
-            additional_imports = f.read().strip().split('\n')
-            for import_module in additional_imports:
-                if not import_module:
-                    continue
-                info(f"Processing linked import: {import_module}")
-
-                # Find the import spec
-                spec = importlib.util.find_spec(import_module)
-                if spec and spec.origin and 'built-in' not in spec.origin and 'frozen' not in spec.origin:
-                    origin_path = spec.origin
-                    if origin_path.endswith('__init__.py') or origin_path.endswith('__init__.pyc'):
-                        package_folder = os.path.dirname(origin_path)
-                        target_path = os.path.join(lib_path, os.path.basename(package_folder))
-                        try:
-                            if os.path.exists(target_path):
-                                shutil.rmtree(target_path)
-                            shutil.copytree(package_folder, target_path)
-                            info(f"Copied linked package folder: {os.path.basename(package_folder)} to lib")
-                        except Exception as e:
-                            logging.error(f"Error copying linked package folder {package_folder}: {e}")
-                    elif origin_path.endswith('.pyd'):
-                        try:
-                            shutil.copy2(origin_path, os.path.join(os.path.join(os.path.dirname(lib_path), 'Dlls'), os.path.basename(origin_path)))
-                            info(f"Copied linked module PYD: {os.path.basename(origin_path)}")
-                        except Exception as e:
-                            logging.error(f"Error copying linked module PYD {origin_path}: {e}")
-                    else:
-                        try:
-                            shutil.copy2(origin_path, os.path.join(lib_path, os.path.basename(origin_path)))
-                            info(f"Copied linked module file: {os.path.basename(origin_path)}")
-                        except Exception as e:
-                            logging.error(f"Error copying linked module file {origin_path}: {e}")
-                else:
-                    logging.warning(f"Could not find specification for module: {import_module}. It may be built-in or not installed.")
-    except Exception as e:
-        logging.error(f"Error processing linked_imports file: {e}")
-
-
-def check_and_copy_linked_imports(source_dir, module_origin, folder_path, lib_path):
-    # Check linked_imports in the main script's directory
-    script_linked_imports_file = os.path.join(source_dir, 'linked_imports')
-    if os.path.exists(script_linked_imports_file):
-        copy_linked_imports(script_linked_imports_file, folder_path, lib_path)
-
-    # Check linked_imports in the module's directory
-    if module_origin:
-        module_linked_imports_file = os.path.join(os.path.dirname(module_origin), 'linked_imports')
-        if os.path.exists(module_linked_imports_file):
-            copy_linked_imports(module_linked_imports_file, folder_path, lib_path)
+        logging.error(f"An unexpected error occurred in copying tk: {e}")
 
 
 def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
@@ -148,7 +95,6 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                 continue
 
             origin_path = spec.origin
-            check_and_copy_linked_imports(source_dir, origin_path, folder_path, lib_path)
 
             if origin_path.endswith('__init__.py') or origin_path.endswith('__init__.pyc'):
                 package_folder = os.path.dirname(origin_path)
@@ -175,8 +121,7 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                     except Exception as e:
                         logging.error(f"Error copying module file {origin_path}: {e}")
 
-        # bottom-level actions
-        if module_name == "tkinter":
+        if module_name == "tkinter" or module_name == "_tkinter":
             copy_tk(folder_path)
 
         # execute plugin code here if it had bottom placement
@@ -186,8 +131,6 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                 if module_name == import_name and not top and import_name not in skip:
                     exec(body, globals(), locals())
                     skip.append(import_name)
-
-
 
 def should_exclude(name, patterns):
     return any(fnmatch.fnmatch(name, pattern) for pattern in patterns)
