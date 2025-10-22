@@ -56,11 +56,24 @@ def copy_tk(folder_path):
                     except IOError as e:
                         logging.error(f"Error copying {item_path} to {destination_path}: {e}")
 
-        info(f'Copied tcl directories to {folder_path}')
+        info(f'Copied tcl directories')
 
     except Exception as e:
         logging.error(f"An unexpected error occurred in copying tk: {e}")
 
+def copy_scripts(files, folder_path):
+    if files: os.makedirs(os.path.join(folder_path, 'Scripts'), exist_ok=True)
+    for filename in files:
+        file = os.path.join(os.path.dirname(sys.executable), "Scripts", filename)
+        if os.path.exists(file):
+            shutil.copy2(file, os.path.join(folder_path, "Scripts", filename))
+            logging.debug(f"Copied {filename} to build")
+        else: logging.warning(f"{filename} not found in Scripts dir")    
+
+def copy_include(folder_path):
+    include_path = os.path.join(os.path.dirname(sys.executable), "include")
+    shutil.copytree(include_path, os.path.join(folder_path, 'include'))
+    info('Copied include folder to build')
 
 def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
     special_cases = list(get_special_cases())

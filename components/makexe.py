@@ -37,7 +37,7 @@ def delete_pycache(start_dir):
             except Exception as e:
                 error(f"Error deleting {pycache_path}: {e}")
 
-    info(f"Total '__pycache__' folders deleted: {deleted_count}")
+    logging.debug(f"Total '__pycache__' folders deleted: {deleted_count}")
 
 
 def create_executable(name, zip_path, bootloader, no_console, uac, folder, folder_path=""):
@@ -65,10 +65,6 @@ def create_executable(name, zip_path, bootloader, no_console, uac, folder, folde
     if not folder:
         zip_embeder(name, bootloader, zip_path)
     else:
-        if not folder_path:
-            logging.error("folder_path must be specified when --folder is passed.")
-            sys.exit(1)
-        os.makedirs(folder_path, exist_ok=True)
         shutil.copy2(src=bootloader, dst=os.path.join(folder_path, f'{name}.exe'))
 
 
@@ -170,6 +166,7 @@ def main(folder_path, args):
             logging.critical(f"Failed to rename {folder_path} after {MAX_RETRIES} attempts. Exiting.")
             sys.exit(1)
         time.sleep(RETRY_DELAY)
+
     if args.bat:
         info('Creating Batchfile...')
         with open(os.path.join(folder_path, f'{folder_name}.bat'), 'w') as file:

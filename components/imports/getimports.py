@@ -75,4 +75,3 @@ def recursive_imports(entry_file, visited=None, base_dir=None):
                     to_process.append(path)
 
     return top_level
-

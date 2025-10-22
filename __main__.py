@@ -29,13 +29,18 @@ def check_system():
 
     # Check if the system is Windows, 64-bit, and x86_64 architecture
     if system == "Windows" and arch == "64bit" and machine in ["x86_64", "AMD64"]:
-        # Split release number into major and minor parts
-        major_minor = release.split('.')
-        major_version = int(major_minor[0])
+        try:
+            # Split release number into major and minor parts
+            major_minor = release.split('.')
+            major_version = int(major_minor[0])
 
-        # Check if the major version is 10 or higher, or is 6 and minor version is 3 or higher
-        if major_version > 6:
-            return True
+            # Check if the major version is 10 or higher
+            if major_version >= 10:
+                return True
+
+        except (ValueError, IndexError):
+            # Handle unexpected format in release version
+            return False
 
     return False
 
@@ -72,13 +77,15 @@ def main():
     parser.add_argument('--keepfiles', '-k', action='store_true', help='Keep the build files', default=False)
     parser.add_argument('--copy', '-copy', action='append', help='File(s) or folder(s) to copy into the build directory.', default=[])
     parser.add_argument('--pyarg', '-pyarg', action='append', help='Add arguments to the startup of the python interpreter', default=[])
+    parser.add_argument('--include-script', action='append', help='Add a file located in PYTHONPATH/Scripts', default=[])
+    parser.add_argument('--copy-include', action='store_true', help='Copy PYTHONPATH/include', default=False)
     parser.add_argument('--upx-threads', help='How many threads to use when compressing with UPX.  (More=faster but more straining. Less=slower but less straining)', default=False)
     parser.add_argument('--disable-compile', action='store_true', help='Disable compiling Lib to .pyc files (useful for debugging)', default=False)
     parser.add_argument('--disable-compressing', action='store_true', help='Disable compressing files', default=False)
     parser.add_argument('--disable-password', action='store_true', help='Disable the password on the onefile EXE', default=False)
     parser.add_argument('--disable-dll', action='store_true', help='Disable Copying the DLLs folder (not recommended)', default=False)
     parser.add_argument('--force-refresh', action='store_true', help='Remove the PyCompyle.cache folder and reinstall components', default=False)
-    parser.add_argument( '--debug', action='store_true', help='Enables all debugging tools: --verbose --keepfiles --folder and disables --windowed and --zip', default=False)
+    parser.add_argument('--debug', action='store_true', help='Enables all debugging tools: --verbose --keepfiles --folder and disables --windowed and --zip', default=False)
     args = parser.parse_args()
     if args.debug:
         args.verbose = True
@@ -111,6 +118,13 @@ def main():
     if args.uac and args.bat:
         logging.error('UAC is not compatible with batchfile mode')
         sys.exit(1)
+
+    if args.windowed and args.bootloader:
+        logging.error('Windowed mode is not compatible with a custom bootloader')
+        sys.exit(1)
+    if args.uac and args.bootloader:
+        logging.error('UAC is not compatible with a custom bootloader')
+        sys.exit(1)    
 
     source_file_path = os.path.abspath(args.source_file)
     info(f"Source file: {source_file_path}")
@@ -145,9 +159,14 @@ def main():
     source_dir = os.path.dirname(source_file_path)
     copylogic.copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir)
 
+    if args.include_script:
+        copylogic.copy_scripts(args.include_script, folder_path)
+    if args.copy_include:
+        copylogic.copy_include(folder_path)    
+
     destination_file_path = os.path.join(folder_path, "__main__.py")
     shutil.copy(source_file_path, destination_file_path)
-    info("Script copied")
+    info(f"{os.path.basename(source_file_path)} copied")
 
     info("Gathering requirements complete")
     exec('\n'.join(run_halfway_code()), globals(), locals())
