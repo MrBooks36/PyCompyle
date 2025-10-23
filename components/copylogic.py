@@ -116,7 +116,7 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                     if os.path.exists(target_path):
                         shutil.rmtree(target_path)
                     shutil.copytree(package_folder, target_path)
-                    info(f"Copied package folder: {os.path.basename(package_folder)} to lib")
+                    info(f"Copied package folder: {os.path.basename(package_folder)}")
                 except Exception as e:
                     logging.error(f"Error copying package folder {package_folder}: {e}")
             else:
