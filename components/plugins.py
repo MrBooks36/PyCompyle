@@ -6,7 +6,7 @@ plugins = []
 def load_plugin(plugin_path):
     if os.path.isfile(plugin_path):
         plugins.append(plugin_path)
-        info(f"Loaded plugin: {plugin_path}")
+        info(f"Loaded plugin: {os.path.basename(plugin_path)}")
         return
     base = os.path.dirname(sys.modules["__main__"].__file__)
     builtin_plugin_path = os.path.join(base, "Plugins", f"{plugin_path}.py")
@@ -60,22 +60,27 @@ def apply_monkey_patches():
 def get_special_cases():
     for plugin_path in plugins:
         code = _load_module(plugin_path)
-        if not hasattr(code, "special_case"):
-            continue
-        source = inspect.getsource(code.special_case)
-        body = textwrap.dedent("\n".join(source.splitlines()[1:]))
-        sig = inspect.signature(code.special_case)
+        
+        for attr_name in dir(code):
+            if attr_name.startswith("special_case"):
+                attr = getattr(code, attr_name)
+                
+                if not callable(attr):
+                    continue
 
-        import_name = sig.parameters.get("import_name", None)
-        top = sig.parameters.get("top", None)
-        continue_after = sig.parameters.get("continue_after", None)
+                source = inspect.getsource(attr)
+                body = textwrap.dedent("\n".join(source.splitlines()[1:]))
+                sig = inspect.signature(attr)
+                
+                import_name = sig.parameters.get("import_name", None)
+                top = sig.parameters.get("top", None)
+                continue_after = sig.parameters.get("continue_after", None)
 
-        yield (
-            import_name.default if import_name else "__main__",
-            body,
-            top.default if top else False,
-            continue_after.default if continue_after else False,
-        )
+                yield (
+                    import_name.default if import_name else "__main__",
+                    body,
+                    top.default if top else False,
+                    continue_after.default if continue_after else False)
 
 def run_startup_code():
     for plugin_path in plugins:

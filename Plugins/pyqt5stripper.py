@@ -1,3 +1,4 @@
+# Shutup vars
 import os, shutil
 folder_path = ''
 info = print
