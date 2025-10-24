@@ -125,7 +125,10 @@ def main():
     if args.uac and args.bootloader:
         logging.error('UAC is not compatible with a custom bootloader')
         sys.exit(1)    
-
+    if args.bat and args.bootloader:
+        logging.error('Batchfile mode is not compatible with a custom bootloader')
+        sys.exit(1)  
+    
     source_file_path = os.path.abspath(args.source_file)
     info(f"Source file: {source_file_path}")
     if not os.path.exists(source_file_path):
