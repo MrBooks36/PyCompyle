@@ -173,9 +173,11 @@ def main():
 
     info("Gathering requirements complete")
     exec('\n'.join(run_halfway_code()), globals(), locals())
+
     if args.midwaycommand:
         info(f"Running midway command: {args.midwaycommand}")
         subprocess.run(args.midwaycommand, shell=True)
+
     if not args.noconfirm:
         getpass('Press Enter to continue building the EXE')
     makexe.main(folder_path, args)

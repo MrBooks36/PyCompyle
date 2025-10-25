@@ -66,7 +66,7 @@ def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
             if not os.listdir(dir_path):
                 shutil.rmtree(dir_path)
 
-    compress_folder_with_progress(lib_c_path, output_name, password=None, text='INFO: Compressing top-level files')
+    compress_folder_with_progress(lib_c_path, output_name, password=None, text='INFO: Compressing top-level python files')
 
     shutil.rmtree(lib_c_path)
 
