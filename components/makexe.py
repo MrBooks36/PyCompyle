@@ -12,11 +12,8 @@ from logging import info, error
 MAX_RETRIES = 5
 RETRY_DELAY = 2  # seconds
 
-def setup_logging(log_level=logging.INFO):
-    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
 
 def zip_embeder(name, exe_file, zip_file):
-        setup_logging()
         output_file = os.path.join(os.getcwd(), f'{name}.exe')
 
         with open(output_file, 'wb') as output:
@@ -199,4 +196,4 @@ def main(folder_path, args):
         info('Cleaning up...')
         shutil.rmtree(folder_path)
 
-    info("Done!")    
+    info("Done!")

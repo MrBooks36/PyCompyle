@@ -27,7 +27,7 @@ def download_and_update_linked_imports(cache_file="linked_imports.json", timesta
     info('Refreshing linked_imports.json')
     try:
         logging.debug(f"Downloading linked_imports.json from GitHub: {github_url}")
-        response = requests.get(github_url, timeout=30)
+        response = requests.get(github_url, timeout=10)
         response.raise_for_status()  # Raise an exception for HTTP errors
         with open(cache_file, "wb") as f:
             f.write(response.content)

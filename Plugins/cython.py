@@ -9,9 +9,13 @@ def midway():
     def compile_files(file_path, keep=False):
      try:
         from Cython.Build import cythonize
-        from setuptools import Extension
-        from setuptools.command.build_ext import build_ext
-        from setuptools.dist import Distribution
+        try:
+         from setuptools import Extension
+         from setuptools.command.build_ext import build_ext
+         from setuptools.dist import Distribution
+        except ImportError:
+            logging.error("Setuptools is not installed")
+            return False
      except ImportError:
         logging.error("Cython is not installed.")
         return False

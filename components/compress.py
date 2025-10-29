@@ -55,8 +55,13 @@ def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
     for item in os.listdir(lib_folder):
         item_path = os.path.join(lib_folder, item)
         if os.path.isdir(item_path):
-            only_pyc = all(f.endswith(".pyc") for f in os.listdir(item_path) if os.path.isfile(os.path.join(item_path, f)))
-            if only_pyc:
+            only_pyc_or_py = all(
+                f.endswith((".pyc", ".py")) 
+                for root, _, files in os.walk(item_path) 
+                for f in files 
+                if os.path.isfile(os.path.join(root, f))
+                )
+            if only_pyc_or_py:
                 shutil.move(item_path, lib_c_path)
 
     # Remove empty folders in original Lib

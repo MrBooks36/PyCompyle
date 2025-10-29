@@ -95,11 +95,11 @@ def main():
     for plugin in args.plugin:
         try:
             load_plugin(plugin)
-            apply_monkey_patches()
         except Exception as e:
             logging.error(f"Failed to load plugin '{plugin}': {e}")
             sys.exit(1)
-
+    apply_monkey_patches()
+    folder_path = setup_destination_folder(args.source_file)
 
     exec('\n'.join(run_startup_code()), globals(), locals())
 
@@ -136,7 +136,6 @@ def main():
         sys.exit(1)
     os.chdir(os.path.dirname(source_file_path))
 
-    folder_path = setup_destination_folder(args.source_file)
     copylogic.copy_python_executable(folder_path)
 
     copy_paths = (args.copy or [])
