@@ -2,20 +2,6 @@
 
 Package a Python script into an executable (EXE) with its dependencies while keeping the project as close to its raw form as possible.
 
-## Features
-
-- Package a Python script into an EXE.
-- Option to skip confirmation dialogs.
-- Ability to specify an icon for the EXE.
-- Include additional packages that might have been missed during automatic dependency resolution.
-- Enable verbose output for more insights during the packaging process.
-- Create a windowed application (without a console) if desired.
-- Option to keep the build files after the packaging process.
-- Support for debugging with additional tools.
-- Copy specific files or folders into the build directory.
-- Option to force refresh essential files from GitHub.
-- Add UAC (User Account Control) prompt to the EXE.
-
 ## Installation
 
 Python version 3.6 or higher
