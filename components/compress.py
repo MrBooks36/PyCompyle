@@ -13,7 +13,7 @@ def compress_folder_with_progress(folder_path, output_zip_name, password=None, c
         for root, _, files in os.walk(folder_path)
         for file in files
     )
-    
+
     encryption = pyzipper.WZ_AES if password else None
 
     with tqdm(total=total_size, unit='B', unit_scale=True, desc=text) as pbar, \
@@ -56,9 +56,9 @@ def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
         item_path = os.path.join(lib_folder, item)
         if os.path.isdir(item_path):
             only_pyc_or_py = all(
-                f.endswith((".pyc", ".py")) 
-                for root, _, files in os.walk(item_path) 
-                for f in files 
+                f.endswith((".pyc", ".py"))
+                for root, _, files in os.walk(item_path)
+                for f in files
                 if os.path.isfile(os.path.join(root, f))
                 )
             if only_pyc_or_py:
@@ -83,19 +83,6 @@ def compress_with_upx(folder_path, threads):
     upx_path = os.path.join(base_cache, "upx.exe")
     upx_cache = os.path.join(base_cache, "upxcache")
     os.makedirs(upx_cache, exist_ok=True)
-
-    now = time.time()
-    max_age = 30 * 24 * 3600  # 30 days in seconds
-    for name in os.listdir(upx_cache):
-        path = os.path.join(upx_cache, name)
-        try:
-            if os.path.isfile(path):
-                last_used = os.path.getatime(path)
-                if now - last_used > max_age:
-                    os.remove(path)
-                    logging.debug(f"Removed stale cache file: {name}")
-        except Exception as e:
-            logging.warning(f"Failed to check/remove cache file {name}: {e}")
 
     if not os.path.exists(upx_path):
         info("UPX not found, downloading...")
@@ -152,6 +139,20 @@ def compress_with_upx(folder_path, threads):
                 except Exception as e:
                     logging.error(f"Error compressing {futures[future]}: {e}")
                 pbar.update(1)
+
+    # Remove stale cache files
+    now = time.time()
+    max_age = 30 * 24 * 3600  # 30 days in seconds
+    for name in os.listdir(upx_cache):
+        path = os.path.join(upx_cache, name)
+        try:
+            if os.path.isfile(path):
+                last_used = os.path.getatime(path)
+                if now - last_used > max_age:
+                    os.remove(path)
+                    logging.debug(f"Removed stale cache file: {name}")
+        except Exception as e:
+            logging.warning(f"Failed to check/remove cache file {name}: {e}")
 
 def compress_file_with_upx(file_path):
     upx_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "PyCompyle.cache", "upx.exe")

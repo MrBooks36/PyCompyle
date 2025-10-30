@@ -6,7 +6,7 @@ try:
     from components.copylogic import exclude_pattens
     from components import makexe, copylogic
     from components.plugins import load_plugin, apply_monkey_patches, run_startup_code, run_halfway_code
-except: 
+except:
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components import makexe, copylogic  # type: ignore
     from PyCompyle.components.imports import importcheck # type: ignore
@@ -89,7 +89,7 @@ def main():
     args = parser.parse_args()
     if args.debug:
         args.verbose = True
-    
+
     setup_logging(args.verbose)
 
     for plugin in args.plugin:
@@ -110,7 +110,7 @@ def main():
         args.zip = False
         args.windowed = False
     if args.zip or args.bat:
-        args.folder = True        
+        args.folder = True
 
     if args.windowed and args.bat:
         logging.error('Windowed mode is not compatible with batchfile mode')
@@ -124,11 +124,11 @@ def main():
         sys.exit(1)
     if args.uac and args.bootloader:
         logging.error('UAC is not compatible with a custom bootloader')
-        sys.exit(1)    
+        sys.exit(1)
     if args.bat and args.bootloader:
         logging.error('Batchfile mode is not compatible with a custom bootloader')
-        sys.exit(1)  
-    
+        sys.exit(1)
+
     source_file_path = os.path.abspath(args.source_file)
     info(f"Source file: {source_file_path}")
     if not os.path.exists(source_file_path):
@@ -164,7 +164,7 @@ def main():
     if args.include_script:
         copylogic.copy_scripts(args.include_script, folder_path)
     if args.copy_include:
-        copylogic.copy_include(folder_path)    
+        copylogic.copy_include(folder_path)
 
     destination_file_path = os.path.join(folder_path, "__main__.py")
     shutil.copy(source_file_path, destination_file_path)

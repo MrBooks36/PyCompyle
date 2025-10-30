@@ -42,23 +42,23 @@ def create_executable(name, zip_path, bootloader, no_console, uac, folder, folde
         exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs')  # type: ignore
     except AttributeError:
         exe_folder = os.path.abspath('EXEs')
-    
+
     os.makedirs(exe_folder, exist_ok=True)
-    
+
     bootloader_map = {
         (False, False): "bootloader.exe",
         (False, True): "bootloader_uac.exe",
         (True, False): "bootloaderw.exe",
         (True, True): "bootloaderw_uac.exe",
     }
-    
+
     if not bootloader:
         bootloader = bootloader_map[(no_console, uac)]
         bootloader = os.path.join(exe_folder, bootloader)
     else:
-        info(f'Using custom bootloader: "{bootloader}"') 
-    
-    
+        info(f'Using custom bootloader: "{bootloader}"')
+
+
     if not folder:
         zip_embeder(name, bootloader, zip_path)
     else:
@@ -122,7 +122,7 @@ def add_icon_to_executable(name, icon_path, folder):
 
 def main(folder_path, args):
     folder_name = os.path.basename(folder_path).replace('.build', '')
-    
+
     pyargs = []
     for arg in args.pyarg: pyargs.append(arg)
 
@@ -143,7 +143,7 @@ def main(folder_path, args):
     if not args.disable_compressing:
         compress_with_upx(folder_path, args.upx_threads)
         compress_top_level_pyc(os.path.join(folder_path, "Lib"), output_name=os.path.join(folder_path, "Lib_c"))
-    
+
     if not args.folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not args.disable_password else None)
     else:
      try:
@@ -177,14 +177,14 @@ def main(folder_path, args):
             info(f'Adding icon: {args.icon}')
             add_icon_to_executable(folder_name, args.icon, args.folder)
         else:
-            error(f'Icon file not found: {args.icon}')   
+            error(f'Icon file not found: {args.icon}')
 
     if not args.disable_compressing:
         info('Compressing executable (No progress available)')
         if args.folder: compress_file_with_upx(f"{folder_name}\\{folder_name}.exe")
         else: compress_file_with_upx(f"{folder_name}.exe")
 
-    if args.zip: compress_folder_with_progress(folder_path, folder_name)        
+    if args.zip: compress_folder_with_progress(folder_path, folder_name)
 
     exec('\n'.join(run_end_code()), globals(), locals())
 

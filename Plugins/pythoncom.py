@@ -17,4 +17,4 @@ def special_case(import_name='pythoncom'):
 def init(args):
     for package in ["pythoncom", "traceback", "winerror", "glob", "win32event", "pickle"]:
         if package not in args.package:
-            args.package.append(package)    
+            args.package.append(package)

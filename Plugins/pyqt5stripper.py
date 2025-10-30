@@ -15,7 +15,7 @@ def special_case(import_name='PyQt5', top=False):
         if folder == 'platforms':
             continue
         else: shutil.rmtree(os.path.join(folder_path, 'lib', 'PyQt5', 'Qt5', 'plugins', folder))
-    
+
     not_needed = ['QtXml', 'QtXmlPatterns', 'QtNetwork', 'QtMultimedia', 'QtMultimediaWidgets',
                   'QtQml', 'QtQuick', 'QtQuickWidgets', 'QtSensors', 'QtWebChannel', 'QtSerialPort',
                   'QtQuick3D', 'QtSql', 'QtRemoteObjects', 'QtWebSockets', 'QtBluetooth', 'QtPositioning',

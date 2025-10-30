@@ -1,7 +1,7 @@
 import sys, os, logging, shutil, importlib.util, fnmatch
 try:
     from components.plugins import get_special_cases
-except: 
+except:
     from PyCompyle.components.plugins import get_special_cases # type: ignore
 from logging import info
 
@@ -27,7 +27,7 @@ def copy_python_executable(folder_path):
     for dll_phrase in ['python', 'vcruntime']:
         for dll in find_dlls_with_phrase(python_dir, dll_phrase):
             shutil.copy(dll, folder_path)
-    
+
     # PyCompyle.utils special case
     os.makedirs(os.path.join(folder_path, 'PyCompyle'))
     shutil.copy2(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "util.py"), os.path.join(folder_path, "PyCompyle"))
@@ -68,7 +68,7 @@ def copy_scripts(files, folder_path):
         if os.path.exists(file):
             shutil.copy2(file, os.path.join(folder_path, "Scripts", filename))
             logging.debug(f"Copied {filename} to build")
-        else: logging.warning(f"{filename} not found in Scripts dir")    
+        else: logging.warning(f"{filename} not found in Scripts dir")
 
 def copy_include(folder_path):
     include_path = os.path.join(os.path.dirname(sys.executable), "include")

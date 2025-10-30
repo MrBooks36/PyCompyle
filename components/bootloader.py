@@ -84,7 +84,7 @@ def run_extracted_executable(output_dir):
     except FileNotFoundError:
         print(f"Script path '{script_path}' not found.")
         return
-    
+
     pyargs = ['-B']
     pyargs_file = join(output_dir, 'pyargs')
 

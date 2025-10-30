@@ -78,18 +78,18 @@ def apply_monkey_patches():
 def get_special_cases():
     for plugin_path in plugins:
         code = _load_module(plugin_path)
-        
+
         for attr_name in dir(code):
             if attr_name.startswith("special_case"):
                 attr = getattr(code, attr_name)
-                
+
                 if not callable(attr):
                     continue
 
                 source = inspect.getsource(attr)
                 body = textwrap.dedent("\n".join(source.splitlines()[1:]))
                 sig = inspect.signature(attr)
-                
+
                 import_name = sig.parameters.get("import_name", None)
                 top = sig.parameters.get("top", None)
                 continue_after = sig.parameters.get("continue_after", None)

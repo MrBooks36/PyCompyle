@@ -41,7 +41,7 @@ def load_linked_imports(force_refresh=False):
                 logging.info("Using local linked_imports.json")
                 return json.load(f)
         except Exception as e:
-            logging.warning(f"Local linked_imports.json invalid: {e}")    
+            logging.warning(f"Local linked_imports.json invalid: {e}")
 
     if os.path.exists(cache_file):
         try:
@@ -59,7 +59,7 @@ def load_linked_imports(force_refresh=False):
         except Exception as e:
             logging.warning(f"Local linked_imports.json invalid: {e}")
     logging.warning("No valid linked_imports.json could be loaded from local or cache.")
-    return {}      
+    return {}
 
 def resolve_linked_imports_recursive(base_modules, linked_map):
     resolved = set()
@@ -81,24 +81,24 @@ def run_import_checker(imports, source_dir, tmp_script_path, tmp_output_path):
         tmp_file.write('\nimport sys, os')  # do not remove os it is used later down the line
         tmp_file.write(f"\nwith open(r'{tmp_output_path}', 'w') as out_file:")
         tmp_file.write('\n    out_file.write(str([m.__name__ for m in sys.modules.values() if m]))')
-    
+
     original_dir = os.getcwd()
     try:
         os.chdir(source_dir)
         subprocess.run([sys.executable, tmp_script_path], check=True)
     finally:
         os.chdir(original_dir)
-    
+
     with open(tmp_output_path, "r") as out_file:
         output = out_file.read().strip()
-    
+
     try:
         modules = ast.literal_eval(output)
     except Exception as e:
         logging.error(f"Error parsing modules output: {e}")
         logging.error(f"Output received: {output}")
         modules = []
-    
+
     return modules
 
 def process_imports(source_file_path, packages, keepfile, force_refresh=False):

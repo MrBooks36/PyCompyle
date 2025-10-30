@@ -96,7 +96,7 @@ def midway():
      except Exception as e:
         logging.error(f"Failed to compile {file_path} with Cython: {e}")
         return False
-        
+
     lib_folder = os.path.join(folder_path, 'lib')
     python_lib_path = os.path.dirname(os.__file__)
     site_packages_path = os.path.join(python_lib_path, 'site-packages')
