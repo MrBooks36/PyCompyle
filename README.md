@@ -18,10 +18,10 @@ Package a Python script into an executable (EXE) with its dependencies while kee
 
 ## Installation
 
-Python version 3.6 or higher
+Requires Python version 3.6 or higher, Windows 10 or higher 64-bit
 
 To access the latest releases of this project, please visit our [Releases page](https://github.com/MrBooks36/PyCompyle/releases).  
-Simply download the `installer.py` script and execute it to install PyCompyle directly into the site-packages directory.
+Simply download the `installer.py` script and execute it to install the latest version of PyCompyle directly into the site-packages directory.
 
 ## Usage
 
@@ -36,7 +36,7 @@ Simply download the `installer.py` script and execute it to install PyCompyle di
 - `-bat`, `--bat`: Use a .bat file for starting the built script instead of a exe for faster start times (Automatically implies --folder) 
 - `-i`, `--icon`: Specify an icon for the created EXE.
 - `-p`, `--package`: Include a package that might have been missed. Can be used multiple times to add multiple packages. 
-- `-v`, `--verbose`: Enable verbose output .
+- `-v`, `--verbose`: Enable verbose output.
 - `-w`, `--windowed`: Create a windowed application; the console won't be displayed .
 - `-k`, `--keepfiles`: Keep the build files after packaging .
 - `-d`, `--debug`: Enable all debugging tools; turns `--verbose` and `--keepfiles` on, `--windowed` and `--zip` off. 
@@ -48,8 +48,8 @@ Simply download the `installer.py` script and execute it to install PyCompyle di
 
 
 ## Example Command
-This command packages `my_script.py` into an EXE with a custom icon, enables verbose output, creates a windowed application, includes an additional package, and forces a refresh of `linked_imports.json`.  
-`python -m PyCompyle --force-refresh --icon="myicon.ico" --verbose --windowed --package=numpy --package=ollama my_script.py`
+This command packages `my_script.py` into an EXE with a custom icon, enables verbose output, creates a windowed application and includes two additional packages
+`python -m PyCompyle --icon="myicon.ico" --verbose --windowed --package=numpy --package=ollama my_script.py`
 
 ## Contributing
 
