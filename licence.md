@@ -1,30 +1,11 @@
-Copyright (c) 2025, MrBooks36
-All rights reserved.
+Copyright 2025 MrBooks36
 
-PyCompyle Limited License
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-1. **Grant of Use**  
-You are granted permission to use the software for any purpose, provided you adhere to the conditions set forth in this license.
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 
-2. **Permission to Modify**  
-You may modify the software to suit your needs.
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 
-3. **Redistribution Limitations**  
-You are not permitted to distribute the original. This includes sharing via online platforms, physical media, or any other method of distribution.
+3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
-4. **Forking Provisions**  
-Creating forks of the software is allowed under the following conditions:
-a. The fork must be open source, with the source code publicly accessible.
-b. The fork cannot be sold or used in any way that generates revenue.
-
-5. **Attribution**  
-Any forks or modifications must retain the original copyright notice and provide appropriate credit to [MrBooks36](https://github.com/mrbooks36) as the original author.
-
-6. **Disclaimer of Warranty**  
-The software is provided "as-is," without any warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and noninfringement.
-
-7. **Limitation of Liability**  
-In no event shall the authors or copyright holders be liable for any claim, damages, or other liability, whether in an action of contract, tort, or otherwise, arising from, out of, or in connection with the software or the use or other dealings in the software.
-
-8. **Miscellaneous**  
-This license constitutes the entire agreement concerning the software between the parties and supersedes all prior agreements and understandings with respect to that software.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
