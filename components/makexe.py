@@ -146,14 +146,14 @@ def main(folder_path, args):
 
     if not args.folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not args.disable_password else None)
     else:
-     try:
-        shutil.rmtree(folder_name)
-     except Exception as e:
-        if os.path.exists(folder_name):
-            error(f"Failed to remove existing folder {folder_name}: {e}")
 
      for attempt in range(1, MAX_RETRIES + 1):
       try:
+        try:
+         shutil.rmtree(folder_name)
+        except Exception as e:
+         if os.path.exists(folder_name):
+            error(f"Failed to remove existing folder {folder_name}: {e}")
         os.rename(folder_path, folder_name)
         folder_path = folder_path.replace('.build', '')  # update only after successful rename
         break
