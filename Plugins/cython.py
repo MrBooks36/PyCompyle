@@ -20,7 +20,7 @@ def midway():
         logging.error("Cython is not installed.")
         return False
 
-     if not os.path.isfile(file_path) or not file_path.endswith(".py"):
+     if not os.path.isfile(file_path):
         logging.error(f"Invalid Python file: {file_path}")
         return False
 
@@ -109,7 +109,8 @@ def midway():
 
         for filename in filenames:
             if not filename.endswith('.py'):
-                continue
+                if not filename.endswith('.pyx'):
+                 continue
 
             file_full_path = os.path.join(dirpath, filename)
             rel_path_in_lib = os.path.relpath(file_full_path, lib_folder)
