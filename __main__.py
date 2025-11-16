@@ -14,7 +14,7 @@ except:
     from PyCompyle.components.plugins import load_plugin,  run_startup_code, run_halfway_code # type: ignore
 
 
-exclude_pattens = ['__pycache__', '.git', '.github', '.gitignore', 'readme*', 'licence*', '.vscode']
+exclude_pattens = ['__pycache__', '.git', '.github', '.gitignore', 'readme*', 'license*', '.vscode']
 
 def setup_logging(verbose=False):
     log_level = logging.DEBUG if verbose else logging.INFO
