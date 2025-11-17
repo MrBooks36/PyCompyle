@@ -6,7 +6,7 @@ import logging
 folder_path = ''
 
 def midway():
-    def compile_files(file_path, keep=False):
+    def compile_file(file_path, keep=False):
      try:
         from Cython.Build import cythonize
         try:
@@ -125,6 +125,6 @@ def midway():
                 or os.path.exists(win32_lib_file)
             ):
                 logging.debug(f"Compiling: {rel_path_in_lib}")
-                if not compile_files(file_full_path):
+                if not compile_file(file_full_path):
                     sys.exit(1)
                 logging.info(f"Successfully compiled {rel_path_in_lib} with Cython.")
