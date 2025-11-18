@@ -54,7 +54,7 @@ def main():
     
     # Step 1: Compile EXEs
     print('Compiling EXEs folder...')
-    subprocess.run(['python', 'execompile.py'], shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(['python', 'execompile.py'])
 
     # Step 2: Copy project to build folder
     build_folder = os.path.join('.', 'build')
@@ -71,8 +71,8 @@ def main():
         print('Deleting files/folders as per .gitignore...')
         delete_matching_paths(build_folder, gitignore_patterns)
 
-    # Step 4: Remove .github, .git, .gitignore, build.py and execompile.py in build
-    for path in ['.github', '.git', '.gitignore', 'build.py']:
+    # Step 4: Remove 'venv' .github, .git, .gitignore, build.py, execompile.py and readme.md in build
+    for path in ['venv', '.github', '.git', '.gitignore', 'build.py' 'execompile.py', 'readme.md']:
         target = os.path.join(build_folder, path)
         if os.path.exists(target):
             if os.path.isdir(target):
@@ -81,9 +81,10 @@ def main():
                 os.remove(target)
     
 
-    # Step 5: Remove __pycache__ recursively
+    # Step 5: Remove __pycache__
     delete_pycache(build_folder)
 
+    # Step 6: Cleanup and zipping
     print('Build cleanup completed.')
     print("Compressing build folder into build.zip...")
     shutil.make_archive('build', 'zip', build_folder)

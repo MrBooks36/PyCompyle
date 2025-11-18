@@ -92,10 +92,13 @@ compile_bootloader(["--noconsole", "--uac-admin"], "bootloaderw_uac.exe")  # Win
 
 # --- 4. Sign the bootloaders ---
 pfx_path = os.getenv('PFX_PATH')
+if not pfx_path:
+    print('PFX_PATH environment variable not set. Skipping...')
+    sys.exit(0)
 
 # Ensure the files and paths exist
 if not os.path.exists(pfx_path):
-    print(f"PFX file not found at {pfx_path} skipping...")
+    print(f"PFX file not found at {pfx_path}. Skipping...")
     sys.exit(0)
 
 # Securely retrieve sensitive information from environment variables
