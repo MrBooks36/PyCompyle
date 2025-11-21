@@ -21,7 +21,6 @@ def _load_module(path):
     return importlib.machinery.SourceFileLoader(os.path.basename(path), path).load_module()
 
 def apply_monkey_patches():
-    # Phase 1: collect patches
     replacements = []
     wrappers = []
 
@@ -35,7 +34,21 @@ def apply_monkey_patches():
         if not hasattr(plugin, "patches"):
             continue
 
-        for target_name, patch_func in plugin.patches.items():
+        for target_name, patch_info in plugin.patches.items():
+            # Expecting: { "func": <callable>, "wrap": bool }
+            if not isinstance(patch_info, dict):
+                logging.warning(f"Patch for '{target_name}' in {plugin_path} must be a dict")
+                continue
+
+            patch_func = patch_info.get("func")
+            wrap_flag = patch_info.get("wrap")
+
+            if patch_func is None or wrap_flag is None:
+                logging.warning(
+                    f"Patch '{target_name}' in {plugin_path} missing 'func' or 'wrap'"
+                )
+                continue
+
             parts = target_name.split(".")
             if len(parts) < 2:
                 logging.warning(f"Invalid patch target '{target_name}' in {plugin_path}")
@@ -44,35 +57,32 @@ def apply_monkey_patches():
             mod_name, attr_name = ".".join(parts[:-1]), parts[-1]
             target_mod = sys.modules.get(mod_name) or __import__(mod_name, fromlist=[attr_name])
 
-            # classify
-            try:
-                patch_func.__code__.co_argcount
-            except AttributeError:
-                replacements.append((target_mod, attr_name, patch_func, plugin_path))
-                continue
-
-            if patch_func.__code__.co_argcount == 0:
-                replacements.append((target_mod, attr_name, patch_func, plugin_path))
-            else:
+            if wrap_flag:
                 wrappers.append((target_mod, attr_name, patch_func, plugin_path))
+            else:
+                replacements.append((target_mod, attr_name, patch_func, plugin_path))
 
-    # Phase 2: apply replacements
+    # Phase 2: replacements
     for target_mod, attr_name, patch_func, plugin_path in replacements:
         try:
             setattr(target_mod, attr_name, patch_func)
             logging.info(f"Replaced {target_mod.__name__}.{attr_name} from {plugin_path}")
         except Exception as e:
-            logging.warning(f"Failed to replace {target_mod.__name__}.{attr_name} from {plugin_path}: {e}")
+            logging.warning(
+                f"Failed to replace {target_mod.__name__}.{attr_name} from {plugin_path}: {e}"
+            )
 
-    # Phase 3: apply wrappers
+    # Phase 3: wrappers
     for target_mod, attr_name, patch_func, plugin_path in wrappers:
         try:
             original = getattr(target_mod, attr_name)
-            new_obj = patch_func(original)
-            setattr(target_mod, attr_name, new_obj)
+            wrapped = patch_func(original)
+            setattr(target_mod, attr_name, wrapped)
             logging.info(f"Wrapped {target_mod.__name__}.{attr_name} from {plugin_path}")
         except Exception as e:
-            logging.warning(f"Failed to wrap {target_mod.__name__}.{attr_name} from {plugin_path}: {e}")
+            logging.warning(
+                f"Failed to wrap {target_mod.__name__}.{attr_name} from {plugin_path}: {e}"
+            )
 
 
 def get_special_cases():

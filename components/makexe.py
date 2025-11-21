@@ -104,35 +104,59 @@ def compile_and_replace_py_to_pyc(folder):
                     # Clean up the temporary directory
                     shutil.rmtree(temp_dir)
 
+def compile_main(folder_path):
+    main_file = os.path.join(folder_path, '__main__.py')
+    with open(main_file, 'r') as f:
+            original_content = f.read()
+
+    modified_content = "__name__ = '__main__'\n" + original_content
+
+    with open(main_file, 'w') as f:
+                f.write(modified_content)
+
+    pyc_file_path = main_file.replace('__main__', '__init__') + 'c'
+    display_file_path = os.path.relpath(main_file, folder_path)          
+    py_compile.compile(main_file, cfile=pyc_file_path, dfile=display_file_path, doraise=True)
+
+    with open(main_file, 'w') as f:
+        f.write('import __init__')
+
 def add_icon_to_executable(name, icon_path, folder):
     name = os.path.abspath(name)
     cache_path = os.path.expandvars('%LOCALAPPDATA%\\PyCompyle.cache')
     os.makedirs(cache_path, exist_ok=True)
-    info(f'Cache path: {cache_path}')
+    logging.debug(f'Cache path: {cache_path}')
 
     if not os.path.exists(os.path.join(cache_path, 'resource_hacker')):
         info('Downloading ResourceHacker...')
         download_resourcehacker(cache_path)
 
     r_hacker_path = os.path.join(cache_path, 'resource_hacker', 'ResourceHacker.exe')
-    if folder: command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
-    else: command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
-    subprocess.run(command, shell=True)
+    if not folder: command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
+    else:
+        name = f'{name}\\{os.path.basename(name)}'
+        command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
+    subprocess.run(command, shell=True, stdout=subprocess.DEVNULL)
 
 
 def main(folder_path, args):
     folder_name = os.path.basename(folder_path).replace('.build', '')
 
-    pyargs = []
-    for arg in args.pyarg: pyargs.append(arg)
 
     info('Removing __pycache__ directories...')
     delete_pycache(folder_path)
+
+    if args.icon and not args.folder:
+        add_icon_to_executable(os.path.join(folder_path, 'python'), args.icon, False)
+
     if not args.disable_compile:
      info("Compiling code to PYC files for speed")
      compile_and_replace_py_to_pyc(folder_path)
+     compile_main(folder_path)
 
     info('Writing python args')
+    pyargs = []
+    for arg in args.pyarg: pyargs.append(arg)
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
         file.write('Dlls\nLib\nLib_c.zip')
     if not args.bat and pyargs:
@@ -146,7 +170,6 @@ def main(folder_path, args):
 
     if not args.folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not args.disable_password else None)
     else:
-
      for attempt in range(1, MAX_RETRIES + 1):
       try:
         try:

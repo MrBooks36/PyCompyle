@@ -7,6 +7,8 @@ from datetime import datetime
 from random import randint
 from subprocess import run
 
+global debug
+debug = environ.get('PYCOMPYLEDEBUG')
 
 def generate_unique_output_dir(base_path=None):
     if base_path is None:
@@ -18,7 +20,7 @@ def generate_unique_output_dir(base_path=None):
     return output_dir
 
 
-def extract_embedded_zip(output_dir: str, password: str) -> bool:
+def extract_embedded_zip(output_dir, password):
     exe_path = argv[0]
     bufsize = 1024*1024
     offset = 0
@@ -37,6 +39,8 @@ def extract_embedded_zip(output_dir: str, password: str) -> bool:
         if not exists(join(dirname(exe_path), '__main__.py')):
             print("ERROR: No embedded ZIP found.")
         return False
+    if debug:
+        print('Extracting embedded zip')
     with open(exe_path, 'rb') as f:
         f.seek(start)
         try:
@@ -61,7 +65,6 @@ def run_extracted_executable(output_dir):
         f"sys.executable = r'{argv[0]}'\n"
         f"sys.path.append(r'{output_dir}')\n"
     )
-
     try:
         with open(script_path, 'r', encoding='utf-8') as f:
             original_content = f.read()
@@ -74,6 +77,8 @@ def run_extracted_executable(output_dir):
             modified_content = new_text + marker_comment + after_marker.lstrip()
         else:
             # No marker: prepend sys modifications + marker
+            if debug:
+                print('Prepending sys injection')
             modified_content = new_text + marker_comment + original_content
 
         # Avoid rewriting if content is identical
@@ -95,7 +100,8 @@ def run_extracted_executable(output_dir):
             pyargs.extend(line.strip().split())
 
     additional_args = argv[1:]
-
+    if debug:
+        print('Starting python executable')
     run([python_executable] + pyargs + [output_dir] + additional_args)
 
 
@@ -134,13 +140,19 @@ del "%~f0"
 
 
 def main():
+ if debug:
+     print('Bootloader started')
  output_dir = generate_unique_output_dir()
  if extract_embedded_zip(output_dir, password='PyCompyle'):
+     if debug: 
+         print('Onefile mode')
      schedule_startup_folder_deletion(output_dir)
      run_extracted_executable(output_dir)
      if cleanup_directory(output_dir):
         remove(bat_path)
  elif exists(join(dirname(argv[0]), '__main__.py')):
+     if debug:
+         print('Folder mode')
      rmtree(output_dir)
      folder = dirname(argv[0])
      run_extracted_executable(folder)
@@ -150,3 +162,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    if debug:
+        print('Exiting')

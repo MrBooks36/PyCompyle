@@ -124,13 +124,13 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                     try:
                         shutil.copy2(origin_path, os.path.join(os.path.join(os.path.dirname(lib_path), 'Dlls'),
                                                               os.path.basename(origin_path)))
-                        info(f"Copied module PYD: {os.path.basename(origin_path)}")
+                        info(f"Copied package PYD: {os.path.basename(origin_path)}")
                     except Exception as e:
                         logging.error(f"Error copying module PYD {origin_path}: {e}")
                 else:
                     try:
                         shutil.copy2(origin_path, os.path.join(lib_path, os.path.basename(origin_path)))
-                        info(f"Copied module file: {os.path.basename(origin_path)}")
+                        info(f"Copied package file: {os.path.basename(origin_path)}")
                     except Exception as e:
                         logging.error(f"Error copying module file {origin_path}: {e}")
 
