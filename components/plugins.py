@@ -1,4 +1,4 @@
-import os, sys, logging, inspect, textwrap, importlib.machinery
+import os, sys, logging, inspect, textwrap, importlib.machinery, importlib.util
 from logging import info
 
 plugins = []
@@ -110,23 +110,43 @@ def get_special_cases():
                     top.default if top else False,
                     continue_after.default if continue_after else False)
 
+
+def _create_code(plugin_path, func_name):
+    spec = importlib.util.spec_from_file_location("plugin_mod", plugin_path)
+    if spec is None:
+        return None
+
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    if not hasattr(mod, func_name):
+        return None
+
+    source = inspect.getsource(getattr(mod, func_name))
+    body = textwrap.dedent("\n".join(source.splitlines()[1:])) + "\n"
+
+
+    header = (
+        'import importlib.machinery, os\n'
+        f"plugin = importlib.machinery.SourceFileLoader(r'{plugin_path}', r'{plugin_path}').load_module()\n"
+    )
+
+    return header + body
+
 def run_startup_code():
     for plugin_path in plugins:
-        code = _load_module(plugin_path)
-        if hasattr(code, "init"):
-            source = inspect.getsource(code.init)
-            yield textwrap.dedent("\n".join(source.splitlines()[1:])) + "\n"
+        code = _create_code(plugin_path, "init")
+        if code:
+            yield code
 
 def run_halfway_code():
     for plugin_path in plugins:
-        code = _load_module(plugin_path)
-        if hasattr(code, "midway"):
-            source = inspect.getsource(code.midway)
-            yield textwrap.dedent("\n".join(source.splitlines()[1:])) + "\n"
+        code = _create_code(plugin_path, "midway")
+        if code:
+            yield code
 
 def run_end_code():
     for plugin_path in plugins:
-        code = _load_module(plugin_path)
-        if hasattr(code, "end"):
-            source = inspect.getsource(code.end)
-            yield textwrap.dedent("\n".join(source.splitlines()[1:])) + "\n"
+        code = _create_code(plugin_path, "end")
+        if code:
+            yield code

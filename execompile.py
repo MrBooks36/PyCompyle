@@ -75,14 +75,6 @@ def compile_bootloader(pyinstaller_args, output_name):
     if os.path.exists(dist_path):
         shutil.move(dist_path, os.path.join("EXEs", output_name))
 
-    # Cleanup build folders and spec file
-    for path in ["build", "bootloader.spec"]:
-        if os.path.exists(path):
-            if os.path.isdir(path):
-                shutil.rmtree(path)
-            else:
-                os.remove(path)
-
 # ---- 3. Compile the bootloaders ----
 compile_bootloader([], "bootloader.exe")                    # Regular
 compile_bootloader(["--noconsole"], "bootloaderw.exe")      # Windowed
@@ -134,3 +126,9 @@ for exe in EXEs:
 
 # ---- Final cleanup ----
 shutil.rmtree("dist", ignore_errors=True)
+for path in ["build", "bootloader.spec"]:
+        if os.path.exists(path):
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
