@@ -3,10 +3,16 @@ import sys
 import subprocess
 import logging
 import hashlib
+import functools
 
 # Shutup vars
 folder_path = ''
 plugin = ''
+args = ''
+
+
+def init():
+    args.package.append('inspect')
 
 def compile_file(file_path):
      try:
@@ -28,7 +34,8 @@ def compile_file(file_path):
      except Exception as e:
         logging.error(f"Failed to compile {file_path} with Cython: {e}")
         return False
-     
+
+@functools.cache     
 def hash_file(file_path):
     if os.path.exists(file_path):
      sha256 = hashlib.sha256()
@@ -73,6 +80,7 @@ def midway():
                 if not plugin.compile_file(file_full_path):
                     logging.error(f"Failed to compile {rel_path_in_lib}. Exiting.")
                     sys.exit(1)
+                os.remove(file_full_path)    
                 logging.info(f"Successfully compiled {rel_path_in_lib} with Nuitka.")
 
 

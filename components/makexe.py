@@ -202,10 +202,11 @@ def main(folder_path, args):
         else:
             error(f'Icon file not found: {args.icon}')
 
-    if not args.disable_compressing:
+    if not args.disable_compressing and not args.icon:
         info('Compressing executable (No progress available)')
         if args.folder: compress_file_with_upx(f"{folder_name}\\{folder_name}.exe")
         else: compress_file_with_upx(f"{folder_name}.exe")
+ 
 
     if args.zip: compress_folder_with_progress(folder_path, folder_name)
 

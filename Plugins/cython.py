@@ -3,6 +3,7 @@ import sys
 import shutil
 import logging
 import hashlib
+import functools
 
 # Shutup vars
 folder_path = ''
@@ -99,7 +100,7 @@ def compile_file(file_path, keep=False):
      except Exception as e:
         logging.error(f"Failed to compile {file_path} with Cython: {e}")
         return False
-
+@functools.cache
 def hash_file(file_path):
     if os.path.exists(file_path):
      sha256 = hashlib.sha256()
