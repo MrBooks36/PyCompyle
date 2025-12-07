@@ -83,7 +83,7 @@ def main():
     parser.add_argument('--disable-compile', action='store_true', help='Disable compiling Lib to .pyc files (useful for debugging)', default=False)
     parser.add_argument('--disable-compressing', action='store_true', help='Disable compressing files', default=False)
     parser.add_argument('--disable-password', action='store_true', help='Disable the password on the onefile EXE', default=False)
-    parser.add_argument('--disable-dll', action='store_true', help='Disable Copying the DLLs folder (not recommended)', default=False)
+    parser.add_argument('--disable-dll', action='store_true', help="Disable Copying the DLLs folder (why did I add this the thing will break if you don't have them so only use this if you have some sort of handling system for this that will only copy over the nedded dlls. Wow that was long)", default=False)
     parser.add_argument('--force-refresh', action='store_true', help='Remove the PyCompyle.cache folder and reinstall components', default=False)
     parser.add_argument('--debug', action='store_true', help='Enables all debugging tools: --verbose --keepfiles --folder and disables --windowed and --zip', default=False)
     args = parser.parse_args()
