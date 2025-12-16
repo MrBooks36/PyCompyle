@@ -36,13 +36,13 @@ def compile_file(file_path, keep=False):
      os.makedirs(os.path.join(build_dir, "Release"), exist_ok=True)
      os.makedirs(os.path.join(build_dir, "Debug"), exist_ok=True)
 
-     temp_pyx = os.path.join(build_dir, f"{module_name}.pyx")
-     shutil.copy2(file_path, temp_pyx)
+     rel_py = f"{module_name}.py" if file_path.endswith('.py') else f"{module_name}.pyx"
+     temp_py = os.path.join(build_dir, rel_py)
+     shutil.copy2(file_path, temp_py)
 
-     rel_pyx = f"{module_name}.pyx"
 
      try:
-        extensions = [Extension(module_name, [rel_pyx])]
+        extensions = [Extension(module_name, [rel_py])]
 
         # chdir to build_dir so Cython sees relative path
         old_cwd = os.getcwd()
@@ -100,6 +100,7 @@ def compile_file(file_path, keep=False):
      except Exception as e:
         logging.error(f"Failed to compile {file_path} with Cython: {e}")
         return False
+     
 @functools.cache
 def hash_file(file_path):
     if os.path.exists(file_path):
@@ -152,7 +153,7 @@ def midway():
 
 def compile_main(folder_path):
     main_file = os.path.join(folder_path, '__main__.py')
-    init_file = os.path.join(folder_path, '__init__.py')
+    init_file = os.path.join(folder_path, 'PyCompyle_cython_start.py')
     with open(main_file, 'r') as f:
             original_content = f.read()
 
@@ -160,17 +161,13 @@ def compile_main(folder_path):
 
     with open(init_file, 'w') as f:
                 f.write(modified_content)
-
+                
     compile_file(init_file)
 
-    os.remove(init_file)
     with open(main_file, 'w') as f:
-        f.write('import __init__')
-
-
-
+        f.write('import PyCompyle_cython_start')
 
 
 patches = {
     "components.makexe.compile_main": {"func": compile_main, "wrap": False}
-}                
+}

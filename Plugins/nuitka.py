@@ -30,6 +30,7 @@ def compile_file(file_path):
         os.chdir(os.path.dirname(file_path))
         subprocess.run(['python', '-m', 'nuitka', '--module', '--remove-output', file_path], check=True)
         os.chdir(original_cwd)
+        os.remove(file_path)
         return True
      except Exception as e:
         logging.error(f"Failed to compile {file_path} with Cython: {e}")
@@ -79,8 +80,7 @@ def midway():
                 logging.debug(f"Compiling: {rel_path_in_lib}")
                 if not plugin.compile_file(file_full_path):
                     logging.error(f"Failed to compile {rel_path_in_lib}. Exiting.")
-                    sys.exit(1)
-                os.remove(file_full_path)    
+                    sys.exit(1) 
                 logging.info(f"Successfully compiled {rel_path_in_lib} with Nuitka.")
 
 
@@ -98,11 +98,8 @@ def compile_main(folder_path):
 
     compile_file(init_file)
 
-    os.remove(init_file)
     with open(main_file, 'w') as f:
         f.write('import PyCompyle_nuitka_start')
-
-
 
 
 

@@ -11,7 +11,7 @@ except:
     from PyCompyle.components import makexe, copylogic  # type: ignore
     from PyCompyle.components.imports import importcheck # type: ignore
     from PyCompyle.components.copylogic import exclude_pattens # type: ignore
-    from PyCompyle.components.plugins import load_plugin,  run_startup_code, run_halfway_code # type: ignore
+    from PyCompyle.components.plugins import load_plugin, apply_monkey_patches, run_startup_code, run_halfway_code # type: ignore
 
 
 exclude_pattens = ['__pycache__', '.git', '.github', '.gitignore', 'readme*', 'license*', '.vscode']
@@ -169,17 +169,16 @@ def main():
     destination_file_path = os.path.join(folder_path, "__main__.py")
     shutil.copy(source_file_path, destination_file_path)
     info(f"{os.path.basename(source_file_path)} copied")
-
     info("Gathering requirements complete")
-    exec('\n'.join(run_halfway_code()), globals(), locals())
-
-    if args.midwaycommand:
-        info(f"Running midway command: {args.midwaycommand}")
-        subprocess.run(args.midwaycommand, shell=True)
 
     if not args.noconfirm:
         getpass('Press Enter to continue building the EXE')
+    exec('\n'.join(run_halfway_code()), globals(), locals())
+    if args.midwaycommand:
+        info(f"Running midway command: {args.midwaycommand}")
+        subprocess.run(args.midwaycommand, shell=True)
     makexe.main(folder_path, args)
+    
 
 if __name__ == "__main__":
     main()
