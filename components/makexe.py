@@ -161,9 +161,12 @@ def main(folder_path, args):
         for arg in pyargs:
             file.write(f"{arg}\n")
 
-    if not args.disable_compressing:
-        compress_with_upx(folder_path, args.upx_threads)
+    if not args.disable_lib_compressing:
         compress_top_level_pyc(os.path.join(folder_path, "lib"), output_name=os.path.join(folder_path, "lib_c"))
+
+    if args.upx_threads > 0:
+        info('Compressing with UPX...')
+        compress_with_upx(folder_path, args.upx_threads)
 
     if not args.folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not args.disable_password else None)
     else:
@@ -188,7 +191,7 @@ def main(folder_path, args):
         info('Creating Batchfile...')
         with open(os.path.join(folder_path, f'{folder_name}.bat'), 'w') as file:
             file.write(f'@echo off\n%~dp0\\python.exe {args} %~dp0\\__main__.py')
-    else:
+    elif not args.disable_bootloader:
         info('Creating executable...')
         create_executable(folder_name, f"{folder_name}.zip", args.bootloader, args.windowed, args.uac, args.folder, folder_path)
 
@@ -199,7 +202,7 @@ def main(folder_path, args):
         else:
             error(f'Icon file not found: {args.icon}')
 
-    if not args.disable_compressing and not args.icon:
+    if not args.upx_threads <= 0 and not args.icon:
         info('Compressing executable (No progress available)')
         if args.folder: compress_file_with_upx(f"{folder_name}\\{folder_name}.exe")
         else: compress_file_with_upx(f"{folder_name}.exe")
