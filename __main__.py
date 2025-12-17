@@ -21,28 +21,16 @@ def setup_logging(verbose=False):
     logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
 
 def check_system():
-    # Get architecture, operating system, and machine details
     arch, _ = platform.architecture()
     system = platform.system()
     machine = platform.machine()
     release = platform.release()
 
-    # Check if the system is Windows, 64-bit, and x86_64 architecture
-    if system == "Windows" and arch == "64bit" and machine in ["x86_64", "AMD64"]:
-        try:
-            # Split release number into major and minor parts
-            major_minor = release.split('.')
-            major_version = int(major_minor[0])
-
-            # Check if the major version is 10 or higher
-            if major_version >= 10:
-                return True
-
-        except (ValueError, IndexError):
-            # Handle unexpected format in release version
-            return False
-
-    return False
+    # Check for Windows 10 or higher and 64-bit architecture or linux
+    if system == "Windows" and release >= "10" and arch == "64bit" and machine.endswith('64'):
+        return True
+    if system == "Linux" and arch == "64bit" and machine.endswith('64'):
+        return True
 
 def validate_platform():
     if not check_system():
@@ -80,7 +68,7 @@ def main():
     parser.add_argument('--include-script', action='append', help='Add a file located in PYTHONPATH/Scripts', default=[])
     parser.add_argument('--copy-include', action='store_true', help='Copy PYTHONPATH/include', default=False)
     parser.add_argument('--upx-threads', help='How many threads to use when compressing with UPX. (More=faster but more straining. Less=slower but less straining)', default=False)
-    parser.add_argument('--disable-compile', action='store_true', help='Disable compiling Lib to .pyc files (useful for debugging)', default=False)
+    parser.add_argument('--disable-compile', action='store_true', help='Disable compiling lib to .pyc files (useful for debugging)', default=False)
     parser.add_argument('--disable-compressing', action='store_true', help='Disable compressing files', default=False)
     parser.add_argument('--disable-password', action='store_true', help='Disable the password on the onefile EXE', default=False)
     parser.add_argument('--disable-dll', action='store_true', help="Disable Copying the DLLs folder (why did I add this the thing will break if you don't have them so only use this if you have some sort of handling system for this that will only copy over the nedded dlls. Wow that was long)", default=False)

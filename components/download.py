@@ -1,4 +1,4 @@
-import os, requests, zipfile, logging, re, io
+import os, requests, zipfile, logging, re, io, platform, stat, tarfile
 from datetime import datetime, timezone
 from logging import info
 
@@ -37,11 +37,16 @@ def download_and_update_linked_imports(cache_file="linked_imports.json", timesta
     except Exception as e:
         logging.warning(f"Failed to download linked_imports.json: {e}")
 
-
 def install_upx():
-    localappdata = os.environ.get("LOCALAPPDATA")
-    dest_folder = os.path.join(localappdata, "PyCompyle.cache")
+    system = platform.system()
 
+    # Cache directory
+    if system == "Windows":
+        base_dir = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
+    else:
+        base_dir = os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
+
+    dest_folder = os.path.join(base_dir, "PyCompyle.cache")
     os.makedirs(dest_folder, exist_ok=True)
 
     releases_url = "https://github.com/upx/upx/releases/latest"
@@ -49,41 +54,67 @@ def install_upx():
     resp.raise_for_status()
     html = resp.text
 
-    # Prefer 64-bit, fallback to 32-bit
-    match = re.search(r"https://github\.com/upx/upx/releases/download/[^\"']+upx-[^\"']+-win64\.zip", html)
-    if not match:
-        match = re.search(r"https://github\.com/upx/upx/releases/download/[^\"']+upx-[^\"']+-win32\.zip", html)
-    if not match:
-        logging.error("Could not find UPX Windows release zip.")
-        return
+    # Determine target archive + binary name
+    if system == "Windows":
+        patterns = [
+            r"https://github\.com/upx/upx/releases/download/[^\"']+/upx-[^\"']+-win64\.zip",
+            r"https://github\.com/upx/upx/releases/download/[^\"']+/upx-[^\"']+-win32\.zip",
+        ]
+        binary_name = "upx.exe"
+        archive_type = "zip"
 
-    zip_url = match.group(0)
+    elif system == "Linux":
+        patterns = ['https://github.com/upx/upx/releases/download/v5.0.2/upx-5.0.2-amd64_linux.tar.xz']
+        binary_name = "upx"
+        archive_type = "tar.xz"
 
-    # Download the zip
-    resp = requests.get(zip_url, timeout=30)
+    match = None
+    for pat in patterns:
+        match = re.search(pat, html)
+        if match:
+            logging.debug(f"Found UPX download link: {match.group(0)}")
+            break
+
+    if not match:
+        logging.error("Could not find UPX release for this platform.")
+        return None
+
+    archive_url = match.group(0)
+    resp = requests.get(archive_url, timeout=30)
     resp.raise_for_status()
 
-    # Extract upx.exe
-    with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
-        exe_name = [name for name in zf.namelist() if name.endswith("upx.exe")]
-        if not exe_name:
-            raise RuntimeError("upx.exe not found in zip.")
-        exe_name = exe_name[0]
+    if archive_type == "zip":
+        with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
+            candidates = [n for n in zf.namelist() if n.endswith("/" + binary_name) or n.endswith(binary_name)]
+            if not candidates:
+                raise RuntimeError(f"{binary_name} not found in archive.")
+            internal_path = candidates[0]
+            zf.extract(internal_path, dest_folder)
+            src_path = os.path.join(dest_folder, internal_path)
+    else:  # tar.xz
+        with tarfile.open(fileobj=io.BytesIO(resp.content), mode="r:xz") as tf:
+            candidates = [m for m in tf.getmembers() if m.name.endswith("/" + binary_name) or m.name.endswith(binary_name)]
+            if not candidates:
+                raise RuntimeError(f"{binary_name} not found in archive.")
+            member = candidates[0]
+            tf.extract(member, dest_folder)
+            src_path = os.path.join(dest_folder, member.name)
 
-        zf.extract(exe_name, dest_folder)
+    final_path = os.path.join(dest_folder, binary_name)
+    os.replace(src_path, final_path)
 
-        src_path = os.path.join(dest_folder, exe_name)
-        final_path = os.path.join(dest_folder, "upx.exe")
+    # Cleanup nested dirs
+    extracted_dir = os.path.dirname(src_path)
+    if extracted_dir and extracted_dir != dest_folder:
+        try:
+            os.rmdir(extracted_dir)
+        except OSError:
+            pass
 
-        # Move to root for convenience
-        os.replace(src_path, final_path)
+    # Linux: mark executable
+    if system != "Windows":
+        logging.debug(f"Setting executable permissions for {final_path}")
+        st = os.stat(final_path)
+        os.chmod(final_path, st.st_mode | stat.S_IEXEC)
 
-        # Cleanup subdir if it exists
-        extracted_dir = os.path.dirname(src_path)
-        if extracted_dir != dest_folder:
-            try:
-                os.rmdir(extracted_dir)
-            except OSError:
-                pass
-
-        return final_path
+    return final_path

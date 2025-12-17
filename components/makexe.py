@@ -1,4 +1,4 @@
-import os, subprocess, py_compile, shutil, logging, time, tempfile, sys
+import os, subprocess, py_compile, shutil, logging, time, tempfile, sys, platform, stat
 try:
  from components.download import download_resourcehacker
  from components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
@@ -14,7 +14,7 @@ RETRY_DELAY = 2  # seconds
 
 
 def zip_embeder(name, exe_file, zip_file):
-        output_file = os.path.join(os.getcwd(), f'{name}.exe')
+        output_file = os.path.join(os.getcwd(), f'{name}.exe' if platform.system() == "Windows" else name)
 
         with open(output_file, 'wb') as output:
             with open(exe_file, 'rb') as f_exe:
@@ -44,12 +44,17 @@ def create_executable(name, zip_path, bootloader, no_console, uac, folder, folde
         exe_folder = os.path.abspath('EXEs')
 
     os.makedirs(exe_folder, exist_ok=True)
-
-    bootloader_map = {
+    if platform.system() == "Windows":
+     bootloader_map = {
         (False, False): "bootloader.exe",
         (False, True): "bootloader_uac.exe",
         (True, False): "bootloaderw.exe",
         (True, True): "bootloaderw_uac.exe",
+     }
+    elif platform.system() == "Linux":
+     bootloader_map = {
+        (False, False): "bootloader",
+        (True, False): "bootloaderw",
     }
 
     if not bootloader:
@@ -61,38 +66,33 @@ def create_executable(name, zip_path, bootloader, no_console, uac, folder, folde
 
     if not folder:
         zip_embeder(name, bootloader, zip_path)
+        if platform.system() == "Linux":
+            st = os.stat(f'{name}')
+            os.chmod(f'{name}', st.st_mode | stat.S_IXUSR)
     else:
-        shutil.copy2(src=bootloader, dst=os.path.join(folder_path, f'{name}.exe'))
+        shutil.copy2(src=bootloader, dst=os.path.join(folder_path, f'{name}.exe'if platform.system() == "Windows" else name))
 
 
 def compile_and_replace_py_to_pyc(folder):
-    directory = os.path.join(folder, "Lib")
+    directory = os.path.join(folder, "lib")
     for root, _, files in os.walk(directory):
         for file in files:
             if file.endswith('.py'):
                 py_file_path = os.path.join(root, file)
 
-                windows_temp_dir = r'C:\Windows\Temp'
+                temp_dir = r'C:\Windows\Temp' if os.name == 'nt' else '/tmp'
 
                 # Create a temporary directory
-                temp_dir = tempfile.mkdtemp(dir=windows_temp_dir)
+                temp_dir = tempfile.mkdtemp(dir=temp_dir)
                 try:
                     temp_file_path = os.path.join(temp_dir, file)
 
-                    # Copy the .py file to the temporary directory
                     shutil.copy2(py_file_path, temp_file_path)
+                    pyc_file_path = py_file_path + 'c' 
 
-                    # Prepare the destination .pyc file path
-                    pyc_file_path = py_file_path + 'c'  # This assumes a certain style of .pyc path
-
-                    try:
-                        # Use a relative path for the display file name
+                    try:     
                         display_file_path = os.path.relpath(py_file_path, directory)
-
-                        # Compile the .py file in the temporary directory
                         py_compile.compile(temp_file_path, cfile=pyc_file_path, dfile=display_file_path, doraise=True)
-
-                        # Remove the original .py file after successful compilation
                         os.remove(py_file_path)
 
                     except py_compile.PyCompileError as compile_error:
@@ -101,7 +101,6 @@ def compile_and_replace_py_to_pyc(folder):
                         error(f"An error occurred with {py_file_path}: {e}")
 
                 finally:
-                    # Clean up the temporary directory
                     shutil.rmtree(temp_dir)
 
 def compile_main(folder_path):
@@ -123,7 +122,7 @@ def compile_main(folder_path):
 
 def add_icon_to_executable(name, icon_path, folder):
     name = os.path.abspath(name)
-    cache_path = os.path.expandvars('%LOCALAPPDATA%\\PyCompyle.cache')
+    cache_path = os.path.expandvars('%LOCALAPPDATA%\\PyCompyle.cache') if os.name == 'nt' else os.path.expanduser('~/.cache/PyCompyle.cache')
     os.makedirs(cache_path, exist_ok=True)
     logging.debug(f'Cache path: {cache_path}')
 
@@ -141,8 +140,6 @@ def add_icon_to_executable(name, icon_path, folder):
 
 def main(folder_path, args):
     folder_name = os.path.basename(folder_path).replace('.build', '')
-
-
     info('Removing __pycache__ directories...')
     delete_pycache(folder_path)
 
@@ -158,7 +155,7 @@ def main(folder_path, args):
     pyargs = []
     for arg in args.pyarg: pyargs.append(arg)
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
-        file.write('Dlls\nLib\nLib_c.zip')
+        file.write('Dlls\nlib\nlib_c.zip')
     if not args.bat and pyargs:
      with open(os.path.join(folder_path, 'pyargs'), 'w') as file:
         for arg in pyargs:
@@ -166,7 +163,7 @@ def main(folder_path, args):
 
     if not args.disable_compressing:
         compress_with_upx(folder_path, args.upx_threads)
-        compress_top_level_pyc(os.path.join(folder_path, "Lib"), output_name=os.path.join(folder_path, "Lib_c"))
+        compress_top_level_pyc(os.path.join(folder_path, "lib"), output_name=os.path.join(folder_path, "lib_c"))
 
     if not args.folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not args.disable_password else None)
     else:

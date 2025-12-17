@@ -1,4 +1,4 @@
-from os import makedirs, environ, remove
+from os import makedirs, environ, remove, name, chmod
 from os.path import join, exists, basename, dirname
 from sys import argv
 from shutil import rmtree
@@ -6,25 +6,29 @@ from pyzipper import AESZipFile, BadZipFile, LargeZipFile
 from datetime import datetime
 from random import randint
 from subprocess import run
+import stat
 
-global debug
 debug = environ.get('PYCOMPYLEDEBUG')
+
 
 def generate_unique_output_dir(base_path=None):
     if base_path is None:
-        base_path = join(environ.get('TEMP', r'C:\Windows\TEMP'), 'mrb36')
+        if name == 'nt':
+            base_path = join(environ.get('TEMP', r'C:\Windows\TEMP'), 'mrb36')
+        else:
+            base_path = join(environ.get('HOME', '/var/tmp'), 'mrb36')
 
     output_dir = f'{base_path}.{int(datetime.now().strftime("%Y%m%d%H%M%S"))}.{randint(1, 100)}'
-    if not exists(output_dir):
-        makedirs(output_dir)
+    makedirs(output_dir, exist_ok=True)
     return output_dir
 
 
 def extract_embedded_zip(output_dir, password):
     exe_path = argv[0]
-    bufsize = 1024*1024
+    bufsize = 1024 * 1024
     offset = 0
     start = -1
+
     with open(exe_path, 'rb') as f:
         while True:
             chunk = f.read(bufsize)
@@ -35,12 +39,12 @@ def extract_embedded_zip(output_dir, password):
                 start = offset + i
                 break
             offset += len(chunk)
+
     if start == -1:
-        if not exists(join(dirname(exe_path), '__main__.py')):
-            print("ERROR: No embedded ZIP found.")
         return False
     if debug:
         print('Extracting embedded zip')
+
     with open(exe_path, 'rb') as f:
         f.seek(start)
         try:
@@ -50,12 +54,26 @@ def extract_embedded_zip(output_dir, password):
         except (RuntimeError, BadZipFile, LargeZipFile) as e:
             print(f"ERROR: Failed to extract ZIP: {e}")
             return False
+
     return True
 
 
+def make_executable(path):
+    if name != 'nt' and exists(path):
+        st = stat.S_IMODE(stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+        chmod(path, st)
+
+
 def run_extracted_executable(output_dir):
-    python_executable = join(output_dir, 'python.exe')
-    script_path = join(output_dir, "__main__.py")
+    python_executable = join(output_dir, 'python.exe' if name == 'nt' else 'python')
+    script_path = join(output_dir, '__main__.py')
+
+    if not exists(script_path):
+        print("ERROR: __main__.py missing")
+        return
+
+    if name != 'nt':
+        make_executable(python_executable)
 
     marker_comment = "# PyCompyle custom sys injection above DO NOT EDIT\n"
 
@@ -63,46 +81,37 @@ def run_extracted_executable(output_dir):
         "import sys\n"
         f"sys.argv[0] = r'{argv[0]}'\n"
         f"sys.executable = r'{argv[0]}'\n"
-        f"sys.path.append(r'{output_dir}')\n"
+        f"sys.path.insert(0, r'{output_dir}')\n"
     )
-    try:
-        with open(script_path, 'r', encoding='utf-8') as f:
-            original_content = f.read()
 
-        # Detect if marker exists
-        if marker_comment in original_content:
-            # Replace everything above the marker
-            _, after_marker = original_content.split(marker_comment, 1)
-            # Strip any old sys modifications above marker
-            modified_content = new_text + marker_comment + after_marker.lstrip()
-        else:
-            # No marker: prepend sys modifications + marker
-            if debug:
-                print('Prepending sys injection')
-            modified_content = new_text + marker_comment + original_content
+    with open(script_path, 'r', encoding='utf-8') as f:
+        original = f.read()
 
-        # Avoid rewriting if content is identical
-        if modified_content != original_content:
-            with open(script_path, 'w', encoding='utf-8') as f:
-                f.write(modified_content)
+    if marker_comment in original:
+        _, after = original.split(marker_comment, 1)
+        modified = new_text + marker_comment + after.lstrip()
+    else:
+        modified = new_text + marker_comment + original
 
-    except FileNotFoundError:
-        print(f"Script path '{script_path}' not found.")
-        return
+    if modified != original:
+        with open(script_path, 'w', encoding='utf-8') as f:
+            f.write(modified)
 
     pyargs = ['-B']
     pyargs_file = join(output_dir, 'pyargs')
 
     if exists(pyargs_file):
-     pyargs = []
-     with open(pyargs_file, 'r') as f:
-        for line in f:
-            pyargs.extend(line.strip().split())
+        pyargs = []
+        with open(pyargs_file, 'r') as f:
+            for line in f:
+                pyargs.extend(line.strip().split())
 
     additional_args = argv[1:]
+
     if debug:
-        print('Starting python executable')
-    run([python_executable] + pyargs + [output_dir] + additional_args)
+        print('Starting embedded Python')
+
+    run([python_executable] + pyargs + [script_path] + additional_args, check=False)
 
 
 def cleanup_directory(output_dir):
@@ -114,53 +123,49 @@ def cleanup_directory(output_dir):
 
 
 def schedule_startup_folder_deletion(output_dir):
-    global bat_path
     localappdata = environ['LOCALAPPDATA']
     scripts_dir = join(localappdata, 'TempDeleteScripts')
     makedirs(scripts_dir, exist_ok=True)
 
     folder_name = basename(output_dir)
     startup_dir = join(
-            environ['APPDATA'],
-            r'Microsoft\Windows\Start Menu\Programs\Startup'
+        environ['APPDATA'],
+        r'Microsoft\Windows\Start Menu\Programs\Startup'
     )
-    bat_filename = f"delete_{folder_name}.bat"
-    bat_path = join(startup_dir, bat_filename)
 
+    bat_path = join(startup_dir, f"delete_{folder_name}.bat")
 
     with open(bat_path, 'w') as f:
         f.write(f"""@echo off
-echo "Hi. The reason you can see this is because a program ended unexpectedly and a temporary folder was not deleted"
-echo "We are deleting it now so there is no reason to be alarmed"
-if exist "{output_dir}" (
-    rmdir /s /q "{output_dir}"
-)
+if exist "{output_dir}" rmdir /s /q "{output_dir}"
 del "%~f0"
 """)
 
+    return bat_path
+
 
 def main():
- if debug:
-     print('Bootloader started')
- output_dir = generate_unique_output_dir()
- if extract_embedded_zip(output_dir, password='PyCompyle'):
-     if debug: 
-         print('Onefile mode')
-     schedule_startup_folder_deletion(output_dir)
-     run_extracted_executable(output_dir)
-     if cleanup_directory(output_dir):
-        remove(bat_path)
- elif exists(join(dirname(argv[0]), '__main__.py')):
-     if debug:
-         print('Folder mode')
-     rmtree(output_dir)
-     folder = dirname(argv[0])
-     run_extracted_executable(folder)
- else:
-     print('No emmbeded zip or __main__.py found')
+    if debug:
+        print('Bootloader started')
+
+    output_dir = generate_unique_output_dir()
+    bat_path = None
+
+    if extract_embedded_zip(output_dir, password='PyCompyle'):
+        if name == 'nt':
+            bat_path = schedule_startup_folder_deletion(output_dir)
+
+        run_extracted_executable(output_dir)
+
+        if cleanup_directory(output_dir) and bat_path:
+            remove(bat_path)
+
+    elif exists(join(dirname(argv[0]), '__main__.py')):
+        run_extracted_executable(dirname(argv[0]))
+
+    else:
+        print('ERROR: No embedded ZIP or __main__.py found')
 
 
 if __name__ == "__main__":
     main()
-    if debug:
-        print('Exiting')

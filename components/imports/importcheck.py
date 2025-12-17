@@ -9,7 +9,7 @@ except ImportError:
  from PyCompyle.components import download # type: ignore
 
 def load_linked_imports(force_refresh=False):
-    local_appdata = os.environ.get("LOCALAPPDATA", "")
+    local_appdata = os.environ.get("LOCALAPPDATA") if os.name == 'nt' else os.path.expanduser('~/.cache')
     cache_dir = os.path.join(local_appdata, "PyCompyle.cache")
     cache_file = os.path.join(cache_dir, "linked_imports.json")
     timestamp_file = os.path.join(cache_dir, "linked_imports.timestamp")
