@@ -16,7 +16,7 @@ def generate_unique_output_dir(base_path=None):
         if name == 'nt':
             base_path = join(environ.get('TEMP', r'C:\Windows\TEMP'), 'mrb36')
         else:
-            base_path = join(environ.get('HOME', '/var/tmp'), 'mrb36')
+            base_path = join('/tmp', 'mrb36')
 
     output_dir = f'{base_path}.{int(datetime.now().strftime("%Y%m%d%H%M%S"))}.{randint(1, 100)}'
     makedirs(output_dir, exist_ok=True)

@@ -174,8 +174,8 @@ def main(folder_path, args):
         except Exception as e:
          if os.path.exists(folder_name):
             error(f"Failed to remove existing folder {folder_name}: {e}")
-        os.rename(folder_path, folder_name)
-        folder_path = folder_path.replace('.build', '')  # update only after successful rename
+        os.rename(folder_path, folder_path.replace('.build', ''))
+        folder_path = folder_path.replace('.build', '') 
         break
       except OSError as e:
         logging.warning(f"Attempt {attempt} failed to rename {folder_path} -> {folder_name}: {e}")
