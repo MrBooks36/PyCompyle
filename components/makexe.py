@@ -154,13 +154,18 @@ def main(folder_path, args):
      compile_and_replace_py_to_pyc(folder_path)
      compile_main(folder_path)
 
-    info('Writing python args')
-    pyargs = []
-    for arg in args.pyarg: pyargs.append(arg)
-    with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
+    if not args.disable_python_environment or not args.disable_bootloader: 
+     info('Writing python args')
+
+    if not args.disable_python_environment: 
+     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
         file.write('Dlls\nLib\nLib_c.zip')
-    if not args.bat and pyargs:
-     with open(os.path.join(folder_path, 'pyargs'), 'w') as file:
+
+    if not args.disable_bootloader:
+     pyargs = []
+     for arg in args.pyarg: pyargs.append(arg)
+     if not args.bat and pyargs:
+      with open(os.path.join(folder_path, 'pyargs'), 'w') as file:
         for arg in pyargs:
             file.write(f"{arg}\n")
 

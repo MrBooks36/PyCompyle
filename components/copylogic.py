@@ -14,23 +14,21 @@ def find_dlls_with_phrase(directory, phrase):
         if filename.lower().endswith('.dll') and phrase.lower() in filename.lower()
     ]
 
-def copy_python_executable(folder_path):
+def copy_python_executable(folder_path, disable_python_environment=False, disable_dll=False):
     python_executable = sys.executable
 
-    shutil.copy(python_executable, os.path.join(folder_path, "python.exe"))
-    info(f"Copied Python executable to {folder_path}")
-
+    if not disable_python_environment:
+        shutil.copy(python_executable, os.path.join(folder_path, "python.exe"))
+        info(f"Copied Python executable to {folder_path}")
     python_dir = os.path.dirname(python_executable)
-    shutil.copytree(os.path.join(python_dir, 'DLLs'), os.path.join(folder_path, 'DLLs'))
-    info(f"Copied Python DLL folder to {folder_path}")
-
+    if not disable_dll:
+     shutil.copytree(os.path.join(python_dir, 'DLLs'), os.path.join(folder_path, 'DLLs'))
+     info(f"Copied Python DLL folder to {folder_path}")
+    if disable_python_environment:
+        return
     for dll_phrase in ['python', 'vcruntime']:
         for dll in find_dlls_with_phrase(python_dir, dll_phrase):
             shutil.copy(dll, folder_path)
-
-    # PyCompyle.utils special case
-    os.makedirs(os.path.join(folder_path, 'PyCompyle'))
-    shutil.copy2(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "util.py"), os.path.join(folder_path, "PyCompyle"))
 
 def copy_tk(folder_path):
     try:
