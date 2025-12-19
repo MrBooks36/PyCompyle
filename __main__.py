@@ -69,10 +69,11 @@ def main():
     parser.add_argument('--copy-include', action='store_true', help='Copy PYTHONPATH/include', default=False)
     parser.add_argument('--upx-threads', help='How many threads to use when compressing with UPX. (More=faster but more straining. Less=slower but less straining. 0 will disable it)', default=False)
     parser.add_argument('--disable-bootloader', action='store_true', help='Disable creating a bootloader executable (Automatically implies --folder)', default=False)
+    parser.add_argument('--disable-python-environment', action='store_true', help='Disable copying the python environment (excluding DLLs and Lib folder, automatically implies --folder)', default=False)
     parser.add_argument('--disable-compile', action='store_true', help='Disable compiling lib to .pyc files (useful for debugging)', default=False)
     parser.add_argument('--disable-lib-compressing', action='store_true', help='Disable compressing top-level .pyc and .py files in lib folder', default=False)
     parser.add_argument('--disable-password', action='store_true', help='Disable the password on the onefile EXE', default=False)
-    parser.add_argument('--disable-dll', action='store_true', help="Disable Copying the DLLs folder (why did I add this the thing will break if you don't have them so only use this if you have some sort of handling system for this that will only copy over the nedded dlls. Wow that was long)", default=False)
+    parser.add_argument('--disable-dll', action='store_true', help="Disable Copying the DLLs folder (Why did I add this the thing will break if you don't have them so only use this if you have some sort of handling system for this that will only copy over the nedded dlls. Wow that was long)", default=False)
     parser.add_argument('--force-refresh', action='store_true', help='Remove the PyCompyle.cache folder and reinstall components', default=False)
     parser.add_argument('--debug', action='store_true', help='Enables all debugging tools: --verbose --keepfiles --folder and disables --windowed and --zip', default=False)
     args = parser.parse_args()
@@ -125,7 +126,7 @@ def main():
         sys.exit(1)
     os.chdir(os.path.dirname(source_file_path))
 
-    copylogic.copy_python_executable(folder_path)
+    copylogic.copy_python_executable(folder_path, args.disable_python_environment, args.disable_dll)
 
     copy_paths = (args.copy or [])
     for path in copy_paths:

@@ -14,24 +14,32 @@ def find_dlls_with_phrase(directory, phrase):
         if filename.lower().endswith('.dll') and phrase.lower() in filename.lower()
     ]
 
-def copy_python_executable(folder_path):
+def copy_python_executable(folder_path, disable_python_environment=False, disable_dll=False):
     python_executable = sys.executable
-
-    shutil.copyfile(python_executable, os.path.join(folder_path, "python.exe" if platform.system() == "Windows" else "python"))
-    if platform.system() != "Windows":
+    if not disable_python_environment:
+     shutil.copyfile(python_executable, os.path.join(folder_path, "python.exe" if platform.system() == "Windows" else "python"))
+     if platform.system() != "Windows":
         st = os.stat(os.path.join(folder_path, "python"))
         os.chmod(os.path.join(folder_path, "python"), st.st_mode | stat.S_IEXEC)
-    info(f"Copied Python executable to {folder_path}")
+     info(f"Copied Python executable to {folder_path}")
 
     python_dir = os.path.dirname(python_executable)
-    if platform.system() == "Windows":
+    if platform.system() == "Windows" and not disable_dll:
      shutil.copytree(os.path.join(python_dir, 'DLLs'), os.path.join(folder_path, 'DLLs'))
      info(f"Copied Python DLL folder to {folder_path}")
 
+    if not disable_python_environment:
+        shutil.copy(python_executable, os.path.join(folder_path, "python.exe"))
+        info(f"Copied Python executable to {folder_path}")
+    python_dir = os.path.dirname(python_executable)
+    if not disable_dll:
+     shutil.copytree(os.path.join(python_dir, 'DLLs'), os.path.join(folder_path, 'DLLs'))
+     info(f"Copied Python DLL folder to {folder_path}")
+    if disable_python_environment:
+        return
     for dll_phrase in ['python', 'vcruntime']:
         for dll in find_dlls_with_phrase(python_dir, dll_phrase):
             shutil.copy(dll, folder_path)
-
 
 def copy_tk(folder_path):
     try:
