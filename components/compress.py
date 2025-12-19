@@ -1,4 +1,4 @@
-import os, shutil, logging, pyzipper, subprocess, hashlib, time
+import os, shutil, logging, pyzipper, subprocess, hashlib, time, stat
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging import info
@@ -35,11 +35,7 @@ def compress_folder_with_progress(folder_path, output_zip_name, password=None, c
                 zipf.write(file_path, arcname)
                 pbar.update(os.path.getsize(file_path))
 
-def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
-    if not os.path.exists(lib_folder):
-        logging.error(f"Lib folder not found: {lib_folder}")
-        return
-
+def compress_top_level_pyc(lib_folder, output_name="lib_c"):
     lib_c_path = os.path.join(os.path.dirname(lib_folder), output_name)
     if os.path.exists(lib_c_path):
         shutil.rmtree(lib_c_path)
@@ -64,7 +60,7 @@ def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
             if only_pyc_or_py:
                 shutil.move(item_path, lib_c_path)
 
-    # Remove empty folders in original Lib
+    # Remove empty folders in original lib
     for root, dirs, files in os.walk(lib_folder, topdown=False):
         for d in dirs:
             dir_path = os.path.join(root, d)
@@ -77,19 +73,34 @@ def compress_top_level_pyc(lib_folder, output_name="Lib_c"):
 
 def compress_with_upx(folder_path, threads):
     max_workers = max(1, os.cpu_count() // 2) if not threads else int(threads)
-    if max_workers == 0: return
-    extensions = [".exe", ".dll", ".pyd", ".so"]
-    base_cache = os.path.join(os.environ.get("LOCALAPPDATA", ""), "PyCompyle.cache")
-    upx_path = os.path.join(base_cache, "upx.exe")
+    if max_workers <= 0:
+        return
+
+    is_windows = os.name == "nt"
+
+    extensions = (".exe", ".dll", ".pyd", ".so", ".bin")
+
+    base_cache = os.path.join(
+        os.environ.get("LOCALAPPDATA") if is_windows else os.path.expanduser("~/.cache"),
+        "PyCompyle.cache"
+    )
+
+    upx_path = os.path.join(base_cache, "upx.exe" if is_windows else "upx")
     upx_cache = os.path.join(base_cache, "upxcache")
     os.makedirs(upx_cache, exist_ok=True)
 
     if not os.path.exists(upx_path):
         info("UPX not found, downloading...")
         upx_path = install_upx()
-        if not upx_path:
+        if not os.path.exists(upx_path):
             logging.error("Failed to install UPX. Compression will be skipped.")
             return
+
+    if not is_windows:
+        st = os.stat(upx_path)
+        if not (st.st_mode & stat.S_IXUSR):
+            os.chmod(upx_path, st.st_mode | stat.S_IXUSR)           
+
 
     def hash_file(path):
         h = hashlib.sha256()
@@ -101,7 +112,7 @@ def compress_with_upx(folder_path, threads):
     files_to_compress = []
     for root, _, files in os.walk(folder_path):
         for file in files:
-            if any(file.lower().endswith(ext) for ext in extensions):
+            if any(file.lower().endswith(ext) for ext in extensions or os.access(file, os.X_OK)):
                 if file.lower().startswith(("qwindows", "vcruntime")):
                     continue
                 files_to_compress.append(os.path.join(root, file))
@@ -155,11 +166,20 @@ def compress_with_upx(folder_path, threads):
             logging.warning(f"Failed to check/remove cache file {name}: {e}")
 
 def compress_file_with_upx(file_path):
-    upx_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "PyCompyle.cache", "upx.exe")
+    is_windows = os.name == "nt"
+    base_cache = os.path.join(
+        os.environ.get("LOCALAPPDATA") if is_windows else os.path.expanduser("~/.cache"),
+        "PyCompyle.cache"
+    )
+
+    upx_path = os.path.join(base_cache, "upx.exe" if is_windows else "upx")
+    upx_cache = os.path.join(base_cache, "upxcache")
+    os.makedirs(upx_cache, exist_ok=True)
+
     if not os.path.exists(upx_path):
         info("UPX not found, downloading...")
         upx_path = install_upx()
-        if not upx_path:
+        if not upx_path or not os.path.exists(upx_path):
             logging.error("Failed to install UPX. Compression will be skipped.")
             return
 

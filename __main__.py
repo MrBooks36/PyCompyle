@@ -21,28 +21,16 @@ def setup_logging(verbose=False):
     logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
 
 def check_system():
-    # Get architecture, operating system, and machine details
     arch, _ = platform.architecture()
     system = platform.system()
     machine = platform.machine()
     release = platform.release()
 
-    # Check if the system is Windows, 64-bit, and x86_64 architecture
-    if system == "Windows" and arch == "64bit" and machine in ["x86_64", "AMD64"]:
-        try:
-            # Split release number into major and minor parts
-            major_minor = release.split('.')
-            major_version = int(major_minor[0])
-
-            # Check if the major version is 10 or higher
-            if major_version >= 10:
-                return True
-
-        except (ValueError, IndexError):
-            # Handle unexpected format in release version
-            return False
-
-    return False
+    # Check for Windows 10 or higher and 64-bit architecture or linux
+    if system == "Windows" and release >= "10" and arch == "64bit" and machine.endswith('64'):
+        return True
+    if system == "Linux" and arch == "64bit" and machine.endswith('64'):
+        return True
 
 def validate_platform():
     if not check_system():

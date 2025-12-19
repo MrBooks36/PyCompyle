@@ -1,4 +1,4 @@
-import sys, os, logging, shutil, importlib.util, fnmatch
+import sys, os, logging, shutil, importlib.util, fnmatch, platform, stat
 try:
     from components.plugins import get_special_cases
 except:
@@ -16,6 +16,17 @@ def find_dlls_with_phrase(directory, phrase):
 
 def copy_python_executable(folder_path, disable_python_environment=False, disable_dll=False):
     python_executable = sys.executable
+    if not disable_python_environment:
+     shutil.copyfile(python_executable, os.path.join(folder_path, "python.exe" if platform.system() == "Windows" else "python"))
+     if platform.system() != "Windows":
+        st = os.stat(os.path.join(folder_path, "python"))
+        os.chmod(os.path.join(folder_path, "python"), st.st_mode | stat.S_IEXEC)
+     info(f"Copied Python executable to {folder_path}")
+
+    python_dir = os.path.dirname(python_executable)
+    if platform.system() == "Windows" and not disable_dll:
+     shutil.copytree(os.path.join(python_dir, 'DLLs'), os.path.join(folder_path, 'DLLs'))
+     info(f"Copied Python DLL folder to {folder_path}")
 
     if not disable_python_environment:
         shutil.copy(python_executable, os.path.join(folder_path, "python.exe"))
@@ -46,7 +57,7 @@ def copy_tk(folder_path):
                 item_path = os.path.join(tcl_directory, item)
                 # Check if item is a directory and matches the phrase
                 if os.path.isdir(item_path) and phrase.lower() in item.lower():
-                    destination_path = os.path.join(folder_path, 'Lib', item)
+                    destination_path = os.path.join(folder_path, 'lib', item)
                     try:
                         if os.path.exists(destination_path):
                             shutil.rmtree(destination_path)
