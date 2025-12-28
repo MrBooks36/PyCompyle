@@ -1,4 +1,4 @@
-import sys, os, logging, shutil, importlib.util, fnmatch, platform, stat
+import sys, os, logging, shutil, importlib.util, fnmatch, platform
 try:
     from components.plugins import get_special_cases
 except:
