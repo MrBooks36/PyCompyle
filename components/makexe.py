@@ -70,7 +70,7 @@ def create_executable(name, zip_path, bootloader, no_console, uac, folder, folde
             st = os.stat(f'{name}')
             os.chmod(f'{name}', st.st_mode | stat.S_IXUSR)
     else:
-        shutil.copy2(src=bootloader, dst=os.path.join(folder_path, f'{name}.exe'if platform.system() == "Windows" else name))
+        shutil.copyfile(src=bootloader, dst=os.path.join(folder_path, f'{name}.exe'if platform.system() == "Windows" else name))
 
 
 def compile_and_replace_py_to_pyc(folder):
@@ -206,11 +206,6 @@ def main(folder_path, args):
             add_icon_to_executable(folder_name, args.icon, args.folder)
         else:
             error(f'Icon file not found: {args.icon}')
-
-    if not args.upx_threads <= 0 and not args.icon:
-        info('Compressing executable (No progress available)')
-        if args.folder: compress_file_with_upx(f"{folder_name}\\{folder_name}.exe")
-        else: compress_file_with_upx(f"{folder_name}.exe")
  
 
     if args.zip: compress_folder_with_progress(folder_path, folder_name)

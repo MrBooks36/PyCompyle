@@ -77,28 +77,6 @@ else:
     compile_bootloader([], "bootloader")
     compile_bootloader(["--windowed"], "bootloaderw")
 
-# Signing (Windows only)
-if SYSTEM == "Windows":
-    pfx_path = os.getenv('PFX_PATH')
-    pfx_password = os.getenv('PFX_PASSWORD')
-
-    if pfx_path and pfx_password:
-        for exe in EXEs:
-            exe_path = os.path.join("EXEs", exe)
-            if os.path.exists(exe_path):
-                try:
-                    subprocess.run(
-                        ['signtool', 'sign', '/f', pfx_path, '/p', pfx_password,
-                         '/fd', 'SHA256', exe_path],
-                        check=True
-                    )
-                except subprocess.CalledProcessError as e:
-                    print(f"Signing failed for {exe_path}: {e}")
-            else:
-                print(f"Executable not found: {exe_path}")
-    else:
-        print("Skipping signing: PFX_PATH or PFX_PASSWORD not set.")
-
 # Cleanup
 shutil.rmtree("dist", ignore_errors=True)
 for path in ["build", "bootloader.spec"]:
