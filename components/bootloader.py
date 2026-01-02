@@ -1,3 +1,4 @@
+# dead
 from os import makedirs, environ, remove, name, chmod
 from os.path import join, exists, basename, dirname
 from sys import argv
@@ -123,10 +124,6 @@ def cleanup_directory(output_dir):
 
 
 def schedule_startup_folder_deletion(output_dir):
-    localappdata = environ['LOCALAPPDATA']
-    scripts_dir = join(localappdata, 'TempDeleteScripts')
-    makedirs(scripts_dir, exist_ok=True)
-
     folder_name = basename(output_dir)
     startup_dir = join(
         environ['APPDATA'],
