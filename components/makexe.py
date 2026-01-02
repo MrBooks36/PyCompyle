@@ -71,7 +71,9 @@ def create_executable(name, zip_path, bootloader, no_console, uac, folder, folde
             os.chmod(f'{name}', st.st_mode | stat.S_IXUSR)
     else:
         shutil.copyfile(src=bootloader, dst=os.path.join(folder_path, f'{name}.exe'if platform.system() == "Windows" else name))
-
+        if platform.system() == "Linux":
+            st = os.stat(f'{name}')
+            os.chmod(os.path.join(folder_path, f'{name}.exe'if platform.system() == "Windows" else name), st.st_mode | stat.S_IXUSR)
 
 def compile_and_replace_py_to_pyc(folder):
     directory = os.path.join(folder, "lib")
@@ -156,7 +158,7 @@ def main(folder_path, args):
 
     if not args.disable_python_environment: 
      with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
-        file.write('Dlls\nLib\nLib_c.zip')
+        file.write('Dlls\nlib\nlib_c.zip')
 
     if not args.disable_bootloader:
      pyargs = []
