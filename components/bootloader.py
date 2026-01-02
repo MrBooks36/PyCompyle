@@ -6,7 +6,7 @@ from pyzipper import AESZipFile, BadZipFile, LargeZipFile
 from datetime import datetime
 from random import randint
 from subprocess import run
-import stat
+from stat import S_IMODE, S_IRWXU, S_IRGRP, S_IXGRP, S_IROTH, S_IXOTH
 
 debug = environ.get('PYCOMPYLEDEBUG')
 
@@ -60,7 +60,7 @@ def extract_embedded_zip(output_dir, password):
 
 def make_executable(path):
     if name != 'nt' and exists(path):
-        st = stat.S_IMODE(stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP | stat.S_IROTH | stat.S_IXOTH)
+        st = S_IMODE(S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
         chmod(path, st)
 
 
