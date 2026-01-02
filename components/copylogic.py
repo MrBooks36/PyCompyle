@@ -24,7 +24,7 @@ def copy_python_executable(folder_path, disable_python_environment=False, disabl
     info(f"Copied Python DLL folder to {folder_path}")
 
     if not disable_python_environment:
-        shutil.copy(python_executable, os.path.join(folder_path, "python.exe"))
+        shutil.copy(python_executable, os.path.join(folder_path, "python.exe" if os.name == 'nt' else 'python'))
         info(f"Copied Python executable to {folder_path}")
     python_dir = os.path.dirname(python_executable)
     
