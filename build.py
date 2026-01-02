@@ -71,8 +71,8 @@ def main():
         print('Deleting files/folders as per .gitignore...')
         delete_matching_paths(build_folder, gitignore_patterns)
 
-    # Step 4: Remove 'venv' .github, .git, .gitignore, build.py, execompile.py and readme.md in build
-    for path in ['venv', '.github', '.git', '.gitignore', 'build.py' 'execompile.py', 'readme.md']:
+    # Step 4: Remove 'venv' .github, .git, .gitignore, build.py, execompile.py, readme.md and bootloader build folder in build
+    for path in ['venv', '.github', '.git', '.gitignore', 'build.py' 'execompile.py', 'readme.md', 'bootloader']:
         target = os.path.join(build_folder, path)
         if os.path.exists(target):
             if os.path.isdir(target):
