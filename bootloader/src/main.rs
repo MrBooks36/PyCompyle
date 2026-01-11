@@ -84,7 +84,11 @@ fn add_sys_mod(output_dir: &Path, script_path: &Path, options: &Options) -> Resu
 }
 
 fn run_extracted_executable(output_dir: &Path, options: &Options) -> Result<()> {
+    #[cfg(target_os = "windows")]
     let python_executable = output_dir.join("python.exe");
+    #[cfg(target_os = "linux")]
+    let python_executable = output_dir.join("python");
+
     let script_path = output_dir.join("__main__.py");
     
 
