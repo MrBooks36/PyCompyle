@@ -3,7 +3,17 @@ name = "bootloader"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
 [dependencies]
-rand = "0.9"
 zip = { version = "7.0.0", features = ["aes-crypto"] }
 anyhow = "1.0.100"
+
+[features]
+default = ["console"]
+console = []

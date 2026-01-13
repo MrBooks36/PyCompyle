@@ -79,6 +79,11 @@ def main():
     args = parser.parse_args()
     if args.debug:
         args.verbose = True
+    if platform.system() == "Linux" and args.uac:
+        logging.error("UAC is not supported on Linux")
+        sys.exit(1)
+    if platform.system() == "Linux":
+        args.package.append('zlib') # needed for lib_c.zip
 
     setup_logging(args.verbose)
 

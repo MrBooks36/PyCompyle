@@ -1,12 +1,15 @@
-
+#![cfg_attr(
+    all(windows, not(feature = "console")),
+    windows_subsystem = "windows"
+)]
 use std::fs::{self};
 use std::fs::File;
 use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
-use rand::Rng;
 use anyhow::{Result, anyhow};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::process::id;
 
 static ZIP_PASSWORD: &str = "PyCompyle";
 
@@ -24,10 +27,10 @@ fn generate_unique_output_dir() -> Result<String> {
     let now = SystemTime::now();
     let since_epoch = now.duration_since(UNIX_EPOCH).unwrap();
     let timestamp = since_epoch.as_secs();
-    let mut rng = rand::rng();
-    let rand_num: i32 = rng.random_range(1..=100);
 
-    Ok(format!("{}.{}.{}", base_path, timestamp, rand_num))
+    let pid = id();
+
+    Ok(format!("{}.{}.{}", base_path, timestamp, pid))
 }
 
 fn extract_embedded_zip(output_dir: &Path, password: &str, options: &Options) -> Result<()> {
@@ -119,6 +122,15 @@ fn run_extracted_executable(output_dir: &Path, options: &Options) -> Result<()> 
         println!("Starting embedded Python");
     }
 
+    // Make sure python executable is executable (Linux)
+    #[cfg(target_os = "linux")]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(&python_executable)?.permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&python_executable, perms)?;
+    }
+
     // Run python process
     let mut cmd = Command::new(python_executable);
     cmd.args(&pyargs)
@@ -145,6 +157,7 @@ fn cleanup_directory(output_dir: &Path) -> bool {
     fs::remove_dir_all(output_dir).is_ok()
 }
 
+#[cfg(target_os = "windows")]
 fn schedule_startup_folder_deletion(output_dir: &Path) -> Result<PathBuf> {
     let appdata = env::var("APPDATA")?;
     let appdata = Path::new(&appdata);
@@ -194,7 +207,7 @@ fn main() -> Result<()> {
             {
                 bat_path = Some(schedule_startup_folder_deletion(output_dir)?);
             }
-
+            
             run_extracted_executable(output_dir, &options)?;
 
             let cleanup = cleanup_directory(output_dir);
