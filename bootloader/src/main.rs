@@ -30,7 +30,7 @@ fn generate_unique_output_dir() -> Result<String> {
 
     let pid = id();
 
-    Ok(format!("{}.{}.{}", base_path, timestamp, pid))
+    Ok(format!("{}\\mrb36.{}.{}", base_path, timestamp, pid))
 }
 
 fn extract_embedded_zip(output_dir: &Path, password: &str, options: &Options) -> Result<()> {

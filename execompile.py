@@ -29,7 +29,8 @@ def build_rust(build_args, out_name):
 
 
 def main():
-    os.makedirs('EXEs', exist_ok=True)
+    shutil.rmtree('EXEs', ignore_errors=True)
+    os.makedirs('EXEs')
     build_rust(["--features", "console"], "bootloader")
     build_rust(["--no-default-features"], "bootloaderw")
 

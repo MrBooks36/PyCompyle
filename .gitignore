@@ -17,8 +17,8 @@ tmp*
 # Distribution / packaging
 build.zip
 .exe
-build/
-target
+build*
+target/
 Cargo.lock
 
 # Environments
