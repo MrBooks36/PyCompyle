@@ -1,12 +1,4 @@
-import os
-import sys
-import zipfile
-import io
-import subprocess
-import shutil
-import json
-import sysconfig
-import tempfile
+import os, sys, zipfile, io,subprocess, shutil, json, sysconfig, tempfile, platform, argparse
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 from subprocess import CalledProcessError
@@ -39,10 +31,21 @@ def get_latest_release(repo_url):
         with urlopen(req) as response:
             data = json.loads(response.read().decode())
 
+        if platform.system() == "Windows":
+            build_folder = "buildwind"
+        elif platform.system() == "Linux":
+            build_folder = "buildlinux"
+
         # Try to find a build zip first
         for asset in data.get("assets", []):
             name = asset.get("name", "").lower()
-            if "build" in name and name.endswith(".zip"):
+            if build_folder in name and name.endswith(".zip"):
+                return asset["browser_download_url"]
+
+        # Fallback: try to find build.zip
+        for asset in data.get("assets", []):
+            name = asset.get("name", "").lower()
+            if name == "build.zip":
                 return asset["browser_download_url"]
 
         # Fallback: use source zip
@@ -53,8 +56,6 @@ def get_latest_release(repo_url):
         raise Exception(f"HTTP Error: {e.code} - {e.reason}") from e
     except URLError as e:
         raise Exception(f"URL Error: {e.reason}") from e
-    except Exception as e:
-        raise Exception(f"Failed to get latest release: {e}") from e
 
 def _safe_extract(zip_file, path):
     for member in zip_file.namelist():
@@ -72,7 +73,7 @@ def download_and_extract_zip(zip_url, extract_to):
                 with tempfile.TemporaryDirectory(prefix="PyCompyle_tmp_") as temp_dir:
                     _safe_extract(z, temp_dir)
 
-                    # Locate the real root folder containing __main__.py
+                    # Locate the real root folder containing __main__.py (Just in case of nested structure by accident)
                     possible_roots = []
                     for root, dirs, files in os.walk(temp_dir):
                         if "__main__.py" in files:
@@ -88,7 +89,6 @@ def download_and_extract_zip(zip_url, extract_to):
                     if os.path.exists(final_path):
                         shutil.rmtree(final_path, ignore_errors=True)
 
-                    # Move all files/folders from source_folder into final_path
                     os.makedirs(final_path, exist_ok=True)
                     for entry in os.listdir(source_folder):
                         src = os.path.join(source_folder, entry)
@@ -119,14 +119,38 @@ def install_latest_release(repo_url):
     site_packages_path = get_site_packages_path()
     print(f"Site-packages path: {site_packages_path}")
     zip_url = get_latest_release(repo_url)
+    print(f"Downloading from: {zip_url}")
     download_and_extract_zip(zip_url, site_packages_path)
     install_requirements(os.path.join(site_packages_path, "PyCompyle"))
     print("Successfully installed PyCompyle")
 
-if __name__ == "__main__":
+
+def main():
+    parser = argparse.ArgumentParser(description="PyCompyle Installer")
+    parser.add_argument('--uninstall', action='store_true', help='Uninstall PyCompyle')
+    parser.add_argument('--update', action='store_true', help='Install or update PyCompyle')
+    parser.add_argument('--headless', action='store_true', help='Run without exit prompt')
+    args = parser.parse_args()
+
     repository = "MrBooks36/PyCompyle"
-    try:
-        if check_if_already_installed():
+
+    if args.uninstall:
+        uninstall()
+        if not args.headless:
+            input("Press enter to exit...")
+        return
+    
+    if args.update:
+            if check_if_already_installed():
+                print("PyCompyle is already installed. Reinstalling...")
+            else:
+                print("Installing PyCompyle...")
+            install_latest_release(repository)
+            if not args.headless:
+                input("Press enter to exit...")
+            return
+
+    if check_if_already_installed():
             choice = input("PyCompyle is already installed. [R]emove, [U]pdate/Repair, [Any other button] Cancel: ").lower()
             if choice == 'r':
                 uninstall()
@@ -135,10 +159,12 @@ if __name__ == "__main__":
                 install_latest_release(repository)
             else:
                 print("Canceled.")
-        else:
+    else:
             print("Installing PyCompyle...")
             install_latest_release(repository)
-    except Exception as e:
-        print(f"An error occurred: {e}")
 
-    input("Press enter to exit...")
+    if not args.headless:
+        input("Press enter to exit...")    
+
+if __name__ == "__main__":
+    main()

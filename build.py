@@ -44,11 +44,10 @@ def delete_matching_paths(root_path, patterns):
                 except Exception:
                     pass
 
-def build(suffix, no_zip=False):
+def build(suffix, no_zip=False, build_linux_only=False):
     logging.info(f"Compiling EXEs...")
-    if suffix == "linux" and platform.system().lower() != "linux":
+    if suffix == "linux" and platform.system().lower() != "linux" or build_linux_only:
         subprocess.run(["wsl.exe", "--", "bash", "-lc", "python3 execompile.py"],check=True)
-
     else:
         subprocess.run(['python', os.path.join(main_folder, 'execompile.py')])
 
@@ -85,16 +84,17 @@ def build(suffix, no_zip=False):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l','--include-linux', action='store_true', help='Create builds for Windows and Linux')
+    parser.add_argument('-l','--include-linux', action='store_true', help='Create builds for Windows and Linux (requires WSL)')
+    parser.add_argument('-ll','--build-linux-only', action='store_true', help='Create build for Linux only (requires WSL)')
     parser.add_argument('--no-zip', action='store_true', help='Do not create zip archives of the builds')
     args = parser.parse_args()
 
     logging.info("Starting build process...")
     delete_pycache(main_folder)
 
-    build(suffix="win" if args.include_linux else "", no_zip=args.no_zip)
+    build(suffix="win" if args.include_linux else "", no_zip=args.no_zip, build_linux_only=args.build_linux_only)
 
-    if args.include_linux:
+    if args.include_linux and not args.build_linux_only:
         logging.info("Starting Linux build process...")
         build(suffix="linux" if args.include_linux else "", no_zip=args.no_zip)
 if __name__ == '__main__':

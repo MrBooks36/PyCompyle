@@ -198,6 +198,7 @@ fn main() -> Result<()> {
     let output_dir = Path::new(&output_dir);
     
 
+    #[cfg(target_os = "windows")]
     #[allow(unused_assignments)]
     let mut bat_path: Option<PathBuf> = None;
 
@@ -206,14 +207,18 @@ fn main() -> Result<()> {
             #[cfg(target_os = "windows")]
             {
                 bat_path = Some(schedule_startup_folder_deletion(output_dir)?);
+                run_extracted_executable(output_dir, &options)?;
+
+                let cleanup = cleanup_directory(output_dir);
+
+                if cleanup && let Some(bat) = bat_path {
+                    fs::remove_file(bat)?
+                }
             }
-            
+            #[cfg(not(target_os = "windows"))] {
             run_extracted_executable(output_dir, &options)?;
 
-            let cleanup = cleanup_directory(output_dir);
-
-            if cleanup && let Some(bat) = bat_path {
-                fs::remove_file(bat)?
+            cleanup_directory(output_dir);
             }
 
         }
