@@ -37,7 +37,7 @@ def delete_pycache(start_dir):
     logging.debug(f"Total '__pycache__' folders deleted: {deleted_count}")
 
 
-def create_executable(name, zip_path, bootloader, no_console, uac, folder, folder_path=""):
+def create_executable(name, zip_path, bootloader, no_console, folder, folder_path=""):
     try:
         exe_folder = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), 'EXEs')  # type: ignore
     except AttributeError:
@@ -46,19 +46,17 @@ def create_executable(name, zip_path, bootloader, no_console, uac, folder, folde
     os.makedirs(exe_folder, exist_ok=True)
     if platform.system() == "Windows":
      bootloader_map = {
-        (False, False): "bootloader.exe",
-        (False, True): "bootloader_uac.exe",
-        (True, False): "bootloaderw.exe",
-        (True, True): "bootloaderw_uac.exe",
+        (False): "bootloader.exe",
+        (True): "bootloaderw.exe",
      }
     elif platform.system() == "Linux":
      bootloader_map = {
-        (False, False): "bootloader",
-        (True, False): "bootloaderw",
+        (False): "bootloader",
+        (True): "bootloaderw",
     }
 
     if not bootloader:
-        bootloader = bootloader_map[(no_console, uac)]
+        bootloader = bootloader_map[(no_console)]
         bootloader = os.path.join(exe_folder, bootloader)
     else:
         info(f'Using custom bootloader: "{bootloader}"')
@@ -84,7 +82,6 @@ def compile_and_replace_py_to_pyc(folder):
 
                 temp_dir = r'C:\Windows\Temp' if os.name == 'nt' else '/tmp'
 
-                # Create a temporary directory
                 temp_dir = tempfile.mkdtemp(dir=temp_dir)
                 try:
                     temp_file_path = os.path.join(temp_dir, file)
@@ -133,15 +130,78 @@ def add_icon_to_executable(name, icon_path, folder):
         download_resourcehacker(cache_path)
 
     r_hacker_path = os.path.join(cache_path, 'resource_hacker', 'ResourceHacker.exe')
-    if not folder: command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
+    if not folder: command = [
+    r_hacker_path,
+    "-open", f"{name}.exe",
+    "-save", f"{name}.exe",
+    "-action", "add",
+    "-res", icon_path,
+    "-mask", "ICONGROUP,MAINICON"
+]
     else:
         name = f'{name}\\{os.path.basename(name)}'
-        command = f'"{r_hacker_path}" -open "{name}.exe" -save "{name}.exe" -action add -res "{icon_path}" -mask ICONGROUP,MAINICON'
-    subprocess.run(command, shell=True, stdout=subprocess.DEVNULL)
+        command = [
+            r_hacker_path,
+            "-open",
+            f'"{name}.exe"', 
+            "-save",
+            f'"{name}.exe"',
+            "-action", 
+            "add",
+            "-res",
+            icon_path,
+            "-mask",
+            "ICONGROUP,MAINICON"
+        ]
+    subprocess.run(command, stdout=subprocess.DEVNULL)
 
+
+def add_uac(file_path):
+    info('Adding UAC to executable...')
+    manifest_content = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false"/>
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+</assembly>
+"""
+
+    fd, manifest_path = tempfile.mkstemp(suffix=".manifest")
+    os.close(fd)
+    with open(manifest_path, "w", encoding="utf-8") as f:
+        f.write(manifest_content)
+
+    cache_path = (
+        os.path.expandvars(r"%LOCALAPPDATA%\PyCompyle.cache")
+        if os.name == "nt"
+        else os.path.expanduser("~/.cache/PyCompyle.cache")
+    )
+    os.makedirs(cache_path, exist_ok=True)
+    logging.debug(f"Cache path: {cache_path}")
+    r_hacker_path = os.path.join(cache_path, "resource_hacker", "ResourceHacker.exe")
+
+    if not os.path.exists(r_hacker_path):
+        info("Downloading ResourceHacker...")
+        download_resourcehacker(cache_path)
+    command = [
+        r_hacker_path,
+        "-open", file_path,
+        "-save", file_path,
+        "-action", "addoverwrite",
+        "-res", manifest_path,
+        "-mask", "MANIFEST,1,"
+    ]
+    subprocess.run(command, stdout=subprocess.DEVNULL)
+    os.remove(manifest_path)
 
 def main(folder_path, args):
     folder_name = os.path.basename(folder_path).replace('.build', '')
+    exe_path = os.path.join(folder_path, f'{folder_name}.exe' if args.folder else f'{folder_name}.exe')
+
     info('Removing __pycache__ directories...')
     delete_pycache(folder_path)
 
@@ -149,58 +209,69 @@ def main(folder_path, args):
         add_icon_to_executable(os.path.join(folder_path, 'python'), args.icon, False)
 
     if not args.disable_compile:
-     info("Compiling code to PYC files for speed")
-     compile_and_replace_py_to_pyc(folder_path)
-     compile_main(folder_path)
+        info("Compiling code to PYC files for speed")
+        compile_and_replace_py_to_pyc(folder_path)
+        compile_main(folder_path)
 
-    if not args.disable_python_environment or not args.disable_bootloader: 
-     info('Writing python args')
+    if not args.disable_python_environment or not args.disable_bootloader:
+        info('Writing python args')
 
-    if not args.disable_python_environment: 
-     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
-        file.write('Dlls\nlib\nlib_c.zip')
+    if not args.disable_python_environment:
+        with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
+            file.write('Dlls\nlib\nlib_c.zip')
 
     if not args.disable_bootloader:
-     pyargs = []
-     for arg in args.pyarg: pyargs.append(arg)
-     if not args.bat and pyargs:
-      with open(os.path.join(folder_path, 'pyargs'), 'w') as file:
-        for arg in pyargs:
-            file.write(f"{arg}\n")
+        pyargs = list(args.pyarg or [])
+        if pyargs and not args.bat:
+            with open(os.path.join(folder_path, 'pyargs'), 'w') as file:
+                file.write('\n'.join(pyargs) + '\n')
 
     if not args.disable_lib_compressing:
-        compress_top_level_pyc(os.path.join(folder_path, "lib"), output_name=os.path.join(folder_path, "lib_c"))
+        compress_top_level_pyc(
+            os.path.join(folder_path, "lib"),
+            output_name=os.path.join(folder_path, "lib_c"),
+        )
 
-    if args.upx_threads > 0:
-        info('Compressing with UPX...')
+    if args.upx_threads not in (0, None, "0"):
         compress_with_upx(folder_path, args.upx_threads)
 
-    if not args.folder: compress_folder_with_progress(folder_path, folder_name, password='PyCompyle' if not args.disable_password else None)
+    if not args.folder:
+        compress_folder_with_progress(
+            folder_path,
+            folder_name,
+            password=None if args.disable_password else 'PyCompyle'
+        )
     else:
-     for attempt in range(1, MAX_RETRIES + 1):
-      try:
-        try:
-         shutil.rmtree(folder_name)
-        except Exception as e:
-         if os.path.exists(folder_name):
-            error(f"Failed to remove existing folder {folder_name}: {e}")
-        os.rename(folder_path, folder_path.replace('.build', ''))
-        folder_path = folder_path.replace('.build', '') 
-        break
-      except OSError as e:
-        logging.warning(f"Attempt {attempt} failed to rename {folder_path} -> {folder_name}: {e}")
-        if attempt == MAX_RETRIES:
-            logging.critical(f"Failed to rename {folder_path} after {MAX_RETRIES} attempts. Exiting.")
-            sys.exit(1)
-        time.sleep(RETRY_DELAY)
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                if os.path.exists(folder_name):
+                    shutil.rmtree(folder_name)
+                new_path = folder_path.replace('.build', '')
+                os.rename(folder_path, new_path)
+                folder_path = new_path
+                break
+            except OSError as e:
+                logging.warning(f"Attempt {attempt} failed to rename {folder_path} -> {folder_name}: {e}")
+                if attempt == MAX_RETRIES:
+                    logging.critical(f"Failed to rename {folder_path} after {MAX_RETRIES} attempts. Exiting.")
+                    sys.exit(1)
+                time.sleep(RETRY_DELAY)
 
     if args.bat:
         info('Creating Batchfile...')
-        with open(os.path.join(folder_path, f'{folder_name}.bat'), 'w') as file:
-            file.write(f'@echo off\n%~dp0\\python.exe {args} %~dp0\\__main__.py')
+        bat_path = os.path.join(folder_path, f'{folder_name}.bat')
+        with open(bat_path, 'w') as file:
+            file.write(f'@echo off\n"%~dp0\\python.exe" {args} "%~dp0\\__main__.py"')
     elif not args.disable_bootloader:
         info('Creating executable...')
-        create_executable(folder_name, f"{folder_name}.zip", args.bootloader, args.windowed, args.uac, args.folder, folder_path)
+        create_executable(
+            folder_name,
+            f"{folder_name}.zip",
+            args.bootloader,
+            args.windowed,
+            args.folder,
+            folder_path,
+        )
 
     if args.icon:
         if os.path.exists(args.icon):
@@ -208,18 +279,23 @@ def main(folder_path, args):
             add_icon_to_executable(folder_name, args.icon, args.folder)
         else:
             error(f'Icon file not found: {args.icon}')
- 
 
-    if args.zip: compress_folder_with_progress(folder_path, folder_name)
+    if args.uac:
+        add_uac(exe_path)
 
-    exec('\n'.join(run_end_code()), globals(), locals())
+    if args.zip:
+        compress_folder_with_progress(folder_path, folder_name)
 
-    if not args.keepfiles and not args.folder:
+    end_code = run_end_code()
+    if end_code:
+        exec('\n'.join(end_code), globals(), locals())
+
+    if not args.keepfiles:
         info('Cleaning up...')
-        shutil.rmtree(folder_path)
-        os.remove(f"{folder_name}.zip")
-    if args.zip and not args.keepfiles:
-        info('Cleaning up...')
-        shutil.rmtree(folder_path)
+        shutil.rmtree(folder_path, ignore_errors=True)
+        if not args.folder:
+            zip_path = f"{folder_name}.zip"
+            if os.path.exists(zip_path):
+                os.remove(zip_path)
 
     info("Done!")

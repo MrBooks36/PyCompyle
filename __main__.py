@@ -67,7 +67,7 @@ def main():
     parser.add_argument('--pyarg', '-pyarg', action='append', help='Add arguments to the startup of the python interpreter', default=[])
     parser.add_argument('--include-script', action='append', help='Add a file located in PYTHONPATH/Scripts', default=[])
     parser.add_argument('--copy-include', action='store_true', help='Copy PYTHONPATH/include', default=False)
-    parser.add_argument('--upx-threads', help='How many threads to use when compressing with UPX. (More=faster but more straining. Less=slower but less straining. 0 will disable it)', default=False)
+    parser.add_argument('--upx-threads', help='How many threads to use when compressing with UPX. (More=faster but more straining. Less=slower but less straining. 0 will disable it)', default='default')
     parser.add_argument('--disable-bootloader', action='store_true', help='Disable creating a bootloader executable (Automatically implies --folder)', default=False)
     parser.add_argument('--disable-python-environment', action='store_true', help='Disable copying the python environment (excluding DLLs and Lib folder, automatically implies --folder)', default=False)
     parser.add_argument('--disable-compile', action='store_true', help='Disable compiling lib to .pyc files (useful for debugging)', default=False)
@@ -95,8 +95,9 @@ def main():
             sys.exit(1)
     apply_monkey_patches()
     folder_path = setup_destination_folder(args.source_file)
-
-    exec('\n'.join(run_startup_code()), globals(), locals())
+    startup_code = run_startup_code()
+    if startup_code:
+        exec('\n'.join(run_startup_code()), globals(), locals())
 
     if args.debug:
         args.verbose = True
@@ -168,7 +169,9 @@ def main():
 
     if not args.noconfirm:
         getpass('Press Enter to continue building the EXE')
-    exec('\n'.join(run_halfway_code()), globals(), locals())
+    halfway_code = run_halfway_code()
+    if halfway_code:
+        exec('\n'.join(halfway_code), globals(), locals())
     if args.midwaycommand:
         info(f"Running midway command: {args.midwaycommand}")
         subprocess.run(args.midwaycommand, shell=True)

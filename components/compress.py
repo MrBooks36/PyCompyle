@@ -72,7 +72,7 @@ def compress_top_level_pyc(lib_folder, output_name="lib_c"):
     shutil.rmtree(lib_c_path)
 
 def compress_with_upx(folder_path, threads):
-    max_workers = max(1, os.cpu_count() // 2) if not threads else int(threads)
+    max_workers = max(1, os.cpu_count() // 2) if threads == 'default' else threads
     if max_workers <= 0:
         return
 
