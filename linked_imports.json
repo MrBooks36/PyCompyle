@@ -12,5 +12,7 @@
   "socket": ["selectors"],
   "traceback": ["linecache", "textwrap"],
   "linecache": ["tokenize"],
-  "tokenize": ["token"]
+  "tokenize": ["token"],
+  "gettext": ["locale"],
+  "argparse": ["shutil"]
 }
