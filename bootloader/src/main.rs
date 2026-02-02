@@ -11,7 +11,6 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::process::id;
 
-static ZIP_PASSWORD: &str = "PyCompyle";
 
 struct Options {
     pub exe: PathBuf,
@@ -33,8 +32,8 @@ fn generate_unique_output_dir() -> Result<String> {
     Ok(format!("{}\\mrb36.{}.{}", base_path, timestamp, pid))
 }
 
-fn extract_embedded_zip(output_dir: &Path, password: &str, options: &Options) -> Result<()> {
-    
+fn extract_embedded_zip(output_dir: &Path, options: &Options) -> Result<()> {
+    let password: &str = "PyCompyle";
     let file = File::open(options.exe.clone())?;
     let mut archive = zip::ZipArchive::new(file)?;
 
@@ -202,7 +201,7 @@ fn main() -> Result<()> {
     #[allow(unused_assignments)]
     let mut bat_path: Option<PathBuf> = None;
 
-    match extract_embedded_zip(output_dir, ZIP_PASSWORD, &options) {
+    match extract_embedded_zip(output_dir, &options) {
         Ok(_) => {
             #[cfg(target_os = "windows")]
             {

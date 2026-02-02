@@ -82,7 +82,7 @@ def main():
     if platform.system() == "Linux" and args.uac:
         logging.error("UAC is not supported on Linux")
         sys.exit(1)
-    if platform.system() == "Linux":
+    if platform.system() == "Linux" and args.disable_lib_compressing == False:
         args.package.append('zlib') # needed for lib_c.zip
 
     setup_logging(args.verbose)

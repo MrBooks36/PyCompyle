@@ -43,9 +43,9 @@ def apply_monkey_patches():
             patch_func = patch_info.get("func")
             wrap_flag = patch_info.get("wrap")
 
-            if patch_func is None or wrap_flag is None:
+            if patch_func is None:
                 logging.warning(
-                    f"Patch '{target_name}' in {plugin_path} missing 'func' or 'wrap'"
+                    f"Patch '{target_name}' in {plugin_path} missing 'func'"
                 )
                 continue
 
@@ -62,8 +62,7 @@ def apply_monkey_patches():
             else:
                 replacements.append((target_mod, attr_name, patch_func, plugin_path))
 
-    # Phase 2: replacements
-    for target_mod, attr_name, patch_func, plugin_path in replacements:
+    for target_mod, attr_name, patch_func, plugin_path in replacements: # This will only use the last one passed
         try:
             setattr(target_mod, attr_name, patch_func)
             logging.info(f"Replaced {target_mod.__name__}.{attr_name} from {plugin_path}")
@@ -72,7 +71,6 @@ def apply_monkey_patches():
                 f"Failed to replace {target_mod.__name__}.{attr_name} from {plugin_path}: {e}"
             )
 
-    # Phase 3: wrappers
     for target_mod, attr_name, patch_func, plugin_path in wrappers:
         try:
             original = getattr(target_mod, attr_name)

@@ -99,9 +99,10 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
             if spec is None or spec.origin is None or 'built-in' in spec.origin or 'frozen' in spec.origin:
                 local_folder = os.path.join(source_dir, module_name)
                 if os.path.isdir(local_folder):
-                    target_path = os.path.join(folder_path, module_name)
+                    os.makedirs(os.path.join(folder_path, "local"), exist_ok=True)
+                    target_path = os.path.join(folder_path, "local", module_name) # when lib_c is used for a local import e.g. ./components it doesn't find it for some reason
                     try:
-                        copy_folder_with_excludes(local_folder, target_path, exclude_patterns=exclude_pattens)
+                        shutil.copytree(local_folder, target_path)
                         info(f"Copied local folder module (no __init__.py): {module_name}")
                     except Exception as e:
                         logging.error(f"Error copying local folder {local_folder}: {e}")

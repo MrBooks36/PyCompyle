@@ -218,7 +218,7 @@ def main(folder_path, args):
 
     if not args.disable_python_environment:
         with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
-            file.write('Dlls\nlib\nlib_c.zip')
+            file.write('Dlls\nlib\nlib_c.zip\nlocal')
 
     if not args.disable_bootloader:
         pyargs = list(args.pyarg or [])
@@ -246,8 +246,9 @@ def main(folder_path, args):
             try:
                 if os.path.exists(folder_name):
                     shutil.rmtree(folder_name)
-                new_path = folder_path.replace('.build', '')
-                os.rename(folder_path, new_path)
+                new_path = os.path.splitext(folder_name)[0]
+                new_path = os.path.abspath(new_path)
+                shutil.move(folder_path, new_path)
                 folder_path = new_path
                 break
             except OSError as e:
@@ -290,12 +291,11 @@ def main(folder_path, args):
     if end_code:
         exec('\n'.join(end_code), globals(), locals())
 
-    if not args.keepfiles:
+    if not args.keepfiles and not args.folder:
         info('Cleaning up...')
         shutil.rmtree(folder_path, ignore_errors=True)
-        if not args.folder:
-            zip_path = f"{folder_name}.zip"
-            if os.path.exists(zip_path):
-                os.remove(zip_path)
+        zip_path = f"{folder_name}.zip"
+        if os.path.exists(zip_path):
+            os.remove(zip_path)
 
     info("Done!")
