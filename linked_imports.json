@@ -14,5 +14,6 @@
   "linecache": ["tokenize"],
   "tokenize": ["token"],
   "gettext": ["locale"],
-  "argparse": ["shutil"]
+  "argparse": ["shutil"],
+  "pythoncom": ["traceback", "winerror", "glob", "win32event", "pickle"]
 }

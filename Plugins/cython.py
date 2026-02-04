@@ -112,42 +112,43 @@ def hash_file(file_path):
 
 def midway():
     logging.info("Starting Cython compilation of .py and .pyx files.")
-    lib_folder = os.path.join(folder_path, 'lib')
-    python_lib_path = os.path.dirname(os.__file__)
-    site_packages_path = os.path.join(python_lib_path, 'site-packages')
-    # Win32 compatibility
-    win32_lib_path = os.path.join(site_packages_path, 'win32', 'lib')
+    folders = [os.path.join(folder_path, 'lib'), os.path.join(folder_path, 'local')]
+    for folder in folders:
+        python_lib_path = os.path.dirname(os.__file__)
+        site_packages_path = os.path.join(python_lib_path, 'site-packages')
+        # Win32 compatibility
+        win32_lib_path = os.path.join(site_packages_path, 'win32', 'lib')
 
-    for dirpath, dirnames, filenames in os.walk(lib_folder):
-        if '__pycache__' in dirnames:
-            dirnames.remove('__pycache__')
+        for dirpath, dirnames, filenames in os.walk(folder):
+            if '__pycache__' in dirnames:
+                dirnames.remove('__pycache__')
 
-        for filename in filenames:
-            if not filename.endswith('.py'):
-                if not filename.endswith('.pyx'):
-                 continue
+            for filename in filenames:
+                if not filename.endswith('.py'):
+                    if not filename.endswith('.pyx'):
+                        continue
 
-            file_full_path = os.path.join(dirpath, filename)
-            rel_path_in_lib = os.path.relpath(file_full_path, lib_folder)
+                file_full_path = os.path.join(dirpath, filename)
+                rel_path_in_lib = os.path.relpath(file_full_path, folder)
     
-            python_lib_file = os.path.join(python_lib_path, rel_path_in_lib)
-            site_packages_file = os.path.join(site_packages_path, rel_path_in_lib)
-            win32_lib_file = os.path.join(win32_lib_path, rel_path_in_lib)
+                python_lib_file = os.path.join(python_lib_path, rel_path_in_lib)
+                site_packages_file = os.path.join(site_packages_path, rel_path_in_lib)
+                win32_lib_file = os.path.join(win32_lib_path, rel_path_in_lib)
     
-            files_exist = os.path.exists(python_lib_file) or os.path.exists(site_packages_file) or os.path.exists(win32_lib_file)
+                files_exist = os.path.exists(python_lib_file) or os.path.exists(site_packages_file) or os.path.exists(win32_lib_file)
 
-            files_match_hashes = (
+                files_match_hashes = (
                 plugin.hash_file(file_full_path) == plugin.hash_file(python_lib_file) or
                 plugin.hash_file(file_full_path) == plugin.hash_file(site_packages_file) or
                 plugin.hash_file(file_full_path) == plugin.hash_file(win32_lib_file)
-            )
+                )
 
-            if not files_exist and not files_match_hashes:
-                logging.debug(f"Compiling: {rel_path_in_lib}")
-                if not plugin.compile_file(file_full_path):
-                    logging.error(f"Failed to compile {rel_path_in_lib}. Exiting.")
-                    sys.exit(1)
-                logging.info(f"Successfully compiled {rel_path_in_lib} with Cython.")
+                if not files_exist and not files_match_hashes:
+                    logging.debug(f"Compiling: {rel_path_in_lib}")
+                    if not plugin.compile_file(file_full_path):
+                        logging.error(f"Failed to compile {rel_path_in_lib}. Exiting.")
+                        sys.exit(1)
+                    logging.info(f"Successfully compiled {rel_path_in_lib} with Cython.")
 
 
 
