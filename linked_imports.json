@@ -9,7 +9,7 @@
   "calendar": ["locale"],
   "queue": ["heapq"],
   "pickle": ["_compat_pickle"],
-  "socket": ["selectors"],
+  "socket": ["selectors", "encodings.idna"],
   "traceback": ["linecache", "textwrap"],
   "linecache": ["tokenize"],
   "tokenize": ["token"],
