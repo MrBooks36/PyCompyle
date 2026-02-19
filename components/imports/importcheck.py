@@ -106,7 +106,6 @@ def process_imports(source_file_path, packages, keepfile, force_refresh=False):
     if source_dir not in sys.path:
         sys.path.insert(0, source_dir)
 
-    # Generate paths for temporary script and output files
     tmp_script_path = os.path.join(source_dir, 'temp_script.py')
     tmp_output_path = os.path.join(source_dir, 'temp_output.txt')
 
@@ -114,7 +113,6 @@ def process_imports(source_file_path, packages, keepfile, force_refresh=False):
         if os.path.exists(tmp_path):
             os.remove(tmp_path)
 
-    # Run checker with raw imports
     info('Getting raw imports')
     raw_imports = getimports.recursive_imports(source_file_path)
     logging.debug(f"Raw imports from file: {raw_imports}")
@@ -124,25 +122,21 @@ def process_imports(source_file_path, packages, keepfile, force_refresh=False):
     raw_modules = run_import_checker(combined_imports, source_dir, tmp_script_path, tmp_output_path)
     logging.debug(f"Modules from raw imports: {raw_modules}")
 
-    # Clean raw modules
     cleaned_modules = set(mod.split('.')[0] for mod in raw_modules if mod and isinstance(mod, str))
     linked_imports = load_linked_imports(force_refresh)
     cleaned_modules = resolve_linked_imports_recursive(cleaned_modules.union(packages), linked_imports)
     cleaned_modules = sorted(cleaned_modules)
     logging.debug(f"First cleaned modules (with linked deps): {cleaned_modules}")
 
-    # Run checker again with cleaned modules
     info('Running import checker again')
     cleaned_modules_result = run_import_checker(cleaned_modules, source_dir, tmp_script_path, tmp_output_path)
     logging.debug(f"Modules from cleaned imports: {cleaned_modules_result}")
 
-    # Finalize cleaned modules
     cleaned_modules = set(mod.split('.')[0] for mod in cleaned_modules_result if mod and isinstance(mod, str))
     cleaned_modules = resolve_linked_imports_recursive(cleaned_modules.union(packages), linked_imports)
     cleaned_modules = sorted(cleaned_modules)
     logging.debug(f"Final cleaned modules (with linked deps): {cleaned_modules}")
 
-    # Cleanup temporary files
     if not keepfile:
         os.remove(tmp_script_path)
         os.remove(tmp_output_path)

@@ -1,17 +1,12 @@
 import os, sys, platform, subprocess, shutil, logging, argparse
 from getpass import getpass
 from logging import info
-try:
-    from components.imports import importcheck
-    from components.copylogic import exclude_pattens
-    from components import makexe, copylogic
-    from components.plugins import load_plugin, apply_monkey_patches, run_startup_code, run_halfway_code
-except:
-    from PyCompyle.components.imports import importcheck # type: ignore
-    from PyCompyle.components import makexe, copylogic  # type: ignore
-    from PyCompyle.components.imports import importcheck # type: ignore
-    from PyCompyle.components.copylogic import exclude_pattens # type: ignore
-    from PyCompyle.components.plugins import load_plugin, apply_monkey_patches, run_startup_code, run_halfway_code # type: ignore
+
+sys.path.append(os.path.dirname(__file__))
+from components.imports import importcheck
+from components.copylogic import exclude_pattens
+from components import makexe, copylogic
+from components.plugins import load_plugin, apply_monkey_patches, run_startup_code, run_halfway_code
 
 
 exclude_pattens = ['__pycache__', '.git', '.github', '.gitignore', 'readme*', 'license*', '.vscode']

@@ -2,10 +2,7 @@ import os, shutil, logging, pyzipper, subprocess, hashlib, time, stat
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging import info
-try:
-    from components.download import install_upx
-except ImportError:
-    from PyCompyle.components.download import install_upx # type: ignore
+from components.download import install_upx
 
 def compress_folder_with_progress(folder_path, output_zip_name, password=None, compression_level=6, text='INFO: Zipping'):
     total_size = sum(

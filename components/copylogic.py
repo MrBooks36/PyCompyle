@@ -1,8 +1,5 @@
 import sys, os, logging, shutil, importlib.util, fnmatch, platform
-try:
-    from components.plugins import get_special_cases
-except:
-    from PyCompyle.components.plugins import get_special_cases # type: ignore
+from components.plugins import get_special_cases
 from logging import info
 
 global exclude_pattens

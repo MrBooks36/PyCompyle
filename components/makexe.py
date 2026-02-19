@@ -1,12 +1,7 @@
 import os, subprocess, py_compile, shutil, logging, time, tempfile, sys, platform, stat
-try:
- from components.download import download_resourcehacker
- from components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
- from components.plugins import run_end_code
-except ImportError:
- from PyCompyle.components.download import download_resourcehacker # type: ignore
- from PyCompyle.components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx # type: ignore
- from PyCompyle.components.plugins import run_end_code # type: ignore
+from components.download import download_resourcehacker
+from components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
+from components.plugins import run_end_code
 from logging import info, error
 
 MAX_RETRIES = 5
@@ -294,6 +289,8 @@ def main(folder_path, args):
     if not args.keepfiles and not args.folder:
         info('Cleaning up...')
         shutil.rmtree(folder_path, ignore_errors=True)
+        if os.path.exists(folder_path): # this is redundant
+            shutil.rmtree(folder_path)
         zip_path = f"{folder_name}.zip"
         if os.path.exists(zip_path):
             os.remove(zip_path)
