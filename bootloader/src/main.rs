@@ -63,12 +63,12 @@ fn extract_embedded_zip(output_dir: &Path, options: &Options) -> Result<()> {
 }
 
 
-fn add_sys_mod(output_dir: &Path, script_path: &Path, options: &Options) -> Result<()> {
+fn add_sys_mod(script_path: &Path, options: &Options) -> Result<()> {
     let exe = options.exe.to_string_lossy();
 
     let new_text = format!(
-        "import sys\nsys.argv[0] = r'{}'\nsys.executable = r'{}'\nsys.path.insert(0, r'{}')\n",
-        exe, exe, output_dir.to_string_lossy()
+        "import sys\nsys.argv[0] = r'{}'\nsys.executable = r'{}'\n",
+        exe, exe
     );
 
     let marker_comment = "# PyCompyle custom sys injection above DO NOT EDIT\n";
@@ -99,7 +99,7 @@ fn run_extracted_executable(output_dir: &Path, options: &Options) -> Result<()> 
         return Err(anyhow!("Error: __main__.py missing"));
     }
     
-    add_sys_mod(output_dir, &script_path, options)?;
+    add_sys_mod(&script_path, options)?;
     
     let mut pyargs = vec!["-B".to_string()];
     let pyargs_file = format!("{:?}/pyargs", output_dir);
@@ -156,27 +156,6 @@ fn cleanup_directory(output_dir: &Path) -> bool {
     fs::remove_dir_all(output_dir).is_ok()
 }
 
-#[cfg(target_os = "windows")]
-fn schedule_startup_folder_deletion(output_dir: &Path) -> Result<PathBuf> {
-    let appdata = env::var("APPDATA")?;
-    let appdata = Path::new(&appdata);
-
-    let folder_name = output_dir.file_name().ok_or_else(|| anyhow!("output directory ended in .. which is invalid"))?;
-
-    let startup_dir = appdata.join(r#"Microsoft\Windows\Start Menu\Programs\Startup"#);
-
-    let name = format!("delete_{}.bat", folder_name.to_string_lossy());
-
-    let bat_path = startup_dir.join(&name);
-
-    let name_str = output_dir.to_string_lossy();
-
-    let code = format!("@echo off\nif exist \"{name_str}\" rmdir /s /q \"{name_str}\"\ndel \"%~f0\"");
-
-    fs::write(&bat_path, &code)?;
-
-    Ok(bat_path)
-}
     
 fn main() -> Result<()> {
     let options = Options {
@@ -197,28 +176,11 @@ fn main() -> Result<()> {
     let output_dir = Path::new(&output_dir);
     
 
-    #[cfg(target_os = "windows")]
-    #[allow(unused_assignments)]
-    let mut bat_path: Option<PathBuf> = None;
-
     match extract_embedded_zip(output_dir, &options) {
         Ok(_) => {
-            #[cfg(target_os = "windows")]
-            {
-                bat_path = Some(schedule_startup_folder_deletion(output_dir)?);
-                run_extracted_executable(output_dir, &options)?;
-
-                let cleanup = cleanup_directory(output_dir);
-
-                if cleanup && let Some(bat) = bat_path {
-                    fs::remove_file(bat)?
-                }
-            }
-            #[cfg(not(target_os = "windows"))] {
             run_extracted_executable(output_dir, &options)?;
 
             cleanup_directory(output_dir);
-            }
 
         }
         Err(e) => {

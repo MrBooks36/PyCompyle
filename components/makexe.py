@@ -213,7 +213,7 @@ def main(folder_path, args):
 
     if not args.disable_python_environment:
         with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
-            file.write('Dlls\nlib\nlib_c.zip\nlocal')
+            file.write('Dlls\nlib\nlib_c.zip\nlocal\n.')
 
     if not args.disable_bootloader:
         pyargs = list(args.pyarg or [])
