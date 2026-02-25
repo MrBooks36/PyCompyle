@@ -15,5 +15,6 @@
   "tokenize": ["token"],
   "gettext": ["locale"],
   "argparse": ["shutil"],
-  "pythoncom": ["traceback", "winerror", "glob", "win32event", "pickle"]
+  "pythoncom": ["traceback", "winerror", "glob", "win32event", "pickle"],
+  "PIL": ["logging", "tempfile", "typing", "fractions"]
 }
