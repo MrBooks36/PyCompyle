@@ -35,13 +35,13 @@ def apply_monkey_patches():
             continue
 
         for target_name, patch_info in plugin.patches.items():
-            # Expecting: { "func": <callable>, "wrap": bool }
+            # Expecting: { "func": <callable>, "wrap": bool } or just func
             if not isinstance(patch_info, dict):
-                logging.warning(f"Patch for '{target_name}' in {plugin_path} must be a dict")
-                continue
-
-            patch_func = patch_info.get("func")
-            wrap_flag = patch_info.get("wrap")
+                patch_func = patch_info
+                wrap_flag = False
+            else:
+                patch_func = patch_info.get("func")
+                wrap_flag = patch_info.get("wrap", False)
 
             if patch_func is None:
                 logging.warning(

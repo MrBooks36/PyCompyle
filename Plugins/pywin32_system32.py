@@ -1,14 +1,10 @@
 # Shutup vars
-def copy_folder_with_excludes(*args): pass
 spec = None
 folder_path = None
 exclude_pattens = None
 def info(*args): pass
-import os
+import os, shutil
 
 def special_case(import_name='pywin32_system32'):
-    copy_folder_with_excludes(
-                os.path.join(os.path.dirname(spec.origin), 'pywin32_system32'),
-                os.path.join(folder_path, "lib",'pywin32_system32'),
-                exclude_patterns=exclude_pattens)
+    shutil.copytree(os.path.join(os.path.dirname(spec.origin), 'pywin32_system32'), os.path.join(folder_path, "lib",'pywin32_system32'))
     info(f"Copied pywin32_system32 for {import_name}")

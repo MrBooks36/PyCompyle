@@ -10,7 +10,7 @@ def download_resourcehacker(cache_path):
 
     zip_filename = os.path.join(cache_path, 'resource_hacker.zip')
     response = requests.get(url, headers={"User-Agent": "XY"})
-    response.raise_for_status()  # Ensure the request was successful
+    response.raise_for_status()
 
     with open(zip_filename, 'wb') as file:
         file.write(response.content)
@@ -28,7 +28,7 @@ def download_and_update_linked_imports(cache_file="linked_imports.json", timesta
     try:
         logging.debug(f"Downloading linked_imports.json from GitHub: {github_url}")
         response = requests.get(github_url, timeout=10)
-        response.raise_for_status()  # Raise an exception for HTTP errors
+        response.raise_for_status()
         with open(cache_file, "wb") as f:
             f.write(response.content)
         with open(timestamp_file, "w") as tf:
@@ -40,7 +40,6 @@ def download_and_update_linked_imports(cache_file="linked_imports.json", timesta
 def install_upx():
     system = platform.system()
 
-    # Cache directory
     if system == "Windows":
         base_dir = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
     else:
@@ -54,7 +53,6 @@ def install_upx():
     resp.raise_for_status()
     html = resp.text
 
-    # Determine target archive + binary name
     if system == "Windows":
         patterns = [
             r"https://github\.com/upx/upx/releases/download/[^\"']+/upx-[^\"']+-win64\.zip",
@@ -111,8 +109,8 @@ def install_upx():
         except OSError:
             pass
 
-    # Linux: mark executable
-    if system != "Windows":
+    # Linux: make executable
+    if system == "Linux":
         logging.debug(f"Setting executable permissions for {final_path}")
         st = os.stat(final_path)
         os.chmod(final_path, st.st_mode | stat.S_IEXEC)

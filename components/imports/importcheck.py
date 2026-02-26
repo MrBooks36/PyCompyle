@@ -78,7 +78,7 @@ def run_import_checker(imports, source_dir, tmp_script_path, tmp_output_path):
     imports = list(imports)
     with open(tmp_script_path, 'w') as tmp_file:
         tmp_file.write('\n'.join(f'try:\n    import {imp}\nexcept: pass\n' for imp in imports))
-        tmp_file.write('\nimport sys, os')  # do not remove os it is used later down the line
+        tmp_file.write('\nimport sys')
         tmp_file.write(f"\nwith open(r'{tmp_output_path}', 'w') as out_file:")
         tmp_file.write('\n    out_file.write(str([m.__name__ for m in sys.modules.values() if m]))')
 
@@ -114,16 +114,17 @@ def process_imports(source_file_path, packages, keepfile, force_refresh=False):
             os.remove(tmp_path)
 
     info('Getting raw imports')
+    linked_imports = load_linked_imports(force_refresh)
     raw_imports = getimports.recursive_imports(source_file_path)
     logging.debug(f"Raw imports from file: {raw_imports}")
 
     info('Running import checker with raw imports')
     combined_imports = raw_imports.union(packages)
     raw_modules = run_import_checker(combined_imports, source_dir, tmp_script_path, tmp_output_path)
+    raw_modules = resolve_linked_imports_recursive(raw_modules, linked_imports)
     logging.debug(f"Modules from raw imports: {raw_modules}")
 
     cleaned_modules = set(mod.split('.')[0] for mod in raw_modules if mod and isinstance(mod, str))
-    linked_imports = load_linked_imports(force_refresh)
     cleaned_modules = resolve_linked_imports_recursive(cleaned_modules.union(packages), linked_imports)
     cleaned_modules = sorted(cleaned_modules)
     logging.debug(f"First cleaned modules (with linked deps): {cleaned_modules}")

@@ -4,12 +4,8 @@ from logging import info
 
 sys.path.append(os.path.dirname(__file__))
 from components.imports import importcheck
-from components.copylogic import exclude_pattens
 from components import makexe, copylogic
 from components.plugins import load_plugin, apply_monkey_patches, run_startup_code, run_halfway_code
-
-
-exclude_pattens = ['__pycache__', '.git', '.github', '.gitignore', 'readme*', 'license*', '.vscode']
 
 def setup_logging(verbose=False):
     log_level = logging.DEBUG if verbose else logging.INFO
@@ -135,7 +131,7 @@ def main():
         dest_path = os.path.join(folder_path, name)
         try:
             if os.path.isdir(path):
-                copylogic.copy_folder_with_excludes(path, dest_path, exclude_patterns=exclude_pattens)
+                shutil.copytree(path, dest_path)
                 info(f"Copied folder '{path}' to '{dest_path}'")
             elif os.path.isfile(path):
                 os.makedirs(os.path.dirname(dest_path), exist_ok=True)

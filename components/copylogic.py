@@ -2,31 +2,34 @@ import sys, os, logging, shutil, importlib.util, fnmatch, platform
 from components.plugins import get_special_cases
 from logging import info
 
-global exclude_pattens
-exclude_pattens = []
-
 def find_dlls_with_phrase(directory, phrase):
     return [
         os.path.join(directory, filename) for filename in os.listdir(directory)
         if filename.lower().endswith('.dll') and phrase.lower() in filename.lower()
     ]
 
+def copy_pyds(folder_path, python_dir, disable_dll=False):
+    if platform.system() == "Windows" and not disable_dll:
+        try:
+            shutil.copytree(os.path.join(python_dir, "DLLs"), os.path.join(folder_path, "DLLs"))
+            info(f"Copied Python DLL folder to {folder_path}")
+        except FileNotFoundError:
+            logging.warning("Dlls folder not found")
+
 def copy_python_executable(folder_path, disable_python_environment=False, disable_dll=False):
+    if disable_python_environment:
+        logging.debug("Skipping copying Python executable and DLLs")
+        return
     python_executable = sys.executable
     python_dir = os.path.dirname(python_executable)
-    if platform.system() == "Windows" and not disable_dll:
-     shutil.copytree(
-        os.path.join(python_dir, "DLLs"),
-        os.path.join(folder_path, "DLLs"))
-    info(f"Copied Python DLL folder to {folder_path}")
+
+    copy_pyds(folder_path, python_dir, disable_dll)
 
     if not disable_python_environment:
         shutil.copy(python_executable, os.path.join(folder_path, "python.exe" if os.name == 'nt' else 'python'))
         info(f"Copied Python executable to {folder_path}")
     python_dir = os.path.dirname(python_executable)
     
-    if disable_python_environment:
-        return
     for dll_phrase in ['python', 'vcruntime']:
         for dll in find_dlls_with_phrase(python_dir, dll_phrase):
             shutil.copy(dll, folder_path)
@@ -36,16 +39,13 @@ def copy_tk(folder_path):
         python_folder = os.path.dirname(sys.executable)
         tcl_directory = os.path.join(python_folder, 'tcl')
 
-        # Check if the path exists to avoid errors.
         if not os.path.exists(tcl_directory):
             logging.warning(f"TCL directory does not exist: {tcl_directory}")
             return
 
-        # Locate and copy directories that match the phrase
         for phrase in ['tk', 'tcl']:
             for item in os.listdir(tcl_directory):
                 item_path = os.path.join(tcl_directory, item)
-                # Check if item is a directory and matches the phrase
                 if os.path.isdir(item_path) and phrase.lower() in item.lower():
                     destination_path = os.path.join(folder_path, 'lib', item)
                     try:
@@ -97,7 +97,7 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                 local_folder = os.path.join(source_dir, module_name)
                 if os.path.isdir(local_folder):
                     os.makedirs(os.path.join(folder_path, "local"), exist_ok=True)
-                    target_path = os.path.join(folder_path, "local", module_name) # when lib_c is used for a local import e.g. ./components it doesn't find it for some reason
+                    target_path = os.path.join(folder_path, "local", module_name) # when lib_c is used for a local import e.g. ./components the python interpreter it doesn't find it for some reason
                     try:
                         shutil.copytree(local_folder, target_path)
                         info(f"Copied local folder module (no __init__.py): {module_name}")
@@ -134,7 +134,7 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                     except Exception as e:
                         logging.error(f"Error copying module file {origin_path}: {e}")
 
-        if module_name == "tkinter" or module_name == "_tkinter":
+        if module_name == "_tkinter":
             copy_tk(folder_path)
 
         # execute plugin code here if it had bottom placement
@@ -144,22 +144,3 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                 if module_name == import_name and not top and import_name not in skip:
                     exec(body, globals(), locals())
                     skip.append(import_name)
-
-def should_exclude(name, patterns):
-    return any(fnmatch.fnmatch(name, pattern) for pattern in patterns)
-
-def copy_folder_with_excludes(src, dst, exclude_patterns):
-    os.makedirs(dst, exist_ok=True)
-    for root, dirs, files in os.walk(src):
-        rel_path = os.path.relpath(root, src)
-        dest_root = os.path.join(dst, rel_path) if rel_path != '.' else dst
-
-        dirs[:] = [d for d in dirs if not should_exclude(d, exclude_patterns)]
-
-        for file in files:
-            if should_exclude(file, exclude_patterns):
-                continue
-            src_file = os.path.join(root, file)
-            dst_file = os.path.join(dest_root, file)
-            os.makedirs(os.path.dirname(dst_file), exist_ok=True)
-            shutil.copy2(src_file, dst_file)
