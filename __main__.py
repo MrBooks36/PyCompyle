@@ -146,7 +146,7 @@ def main():
     lib_path = os.path.join(folder_path, 'lib')
     os.makedirs(lib_path, exist_ok=True)
     source_dir = os.path.dirname(source_file_path)
-    copylogic.copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir)
+    copylogic.copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, args.disable_lib_compressing)
 
     if args.include_script:
         copylogic.copy_scripts(args.include_script, folder_path)

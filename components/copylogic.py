@@ -1,4 +1,4 @@
-import sys, os, logging, shutil, importlib.util, fnmatch, platform
+import sys, os, logging, shutil, importlib.util, platform
 from components.plugins import get_special_cases
 from logging import info
 
@@ -8,7 +8,7 @@ def find_dlls_with_phrase(directory, phrase):
         if filename.lower().endswith('.dll') and phrase.lower() in filename.lower()
     ]
 
-def copy_pyds(folder_path, python_dir, disable_dll=False):
+def copy_dlls_folder(folder_path, python_dir, disable_dll=False):
     if platform.system() == "Windows" and not disable_dll:
         try:
             shutil.copytree(os.path.join(python_dir, "DLLs"), os.path.join(folder_path, "DLLs"))
@@ -16,14 +16,16 @@ def copy_pyds(folder_path, python_dir, disable_dll=False):
         except FileNotFoundError:
             logging.warning("Dlls folder not found")
 
-def copy_python_executable(folder_path, disable_python_environment=False, disable_dll=False):
+
+def copy_python_executable(folder_path, disable_python_environment, disable_dll):
     if disable_python_environment:
         logging.debug("Skipping copying Python executable and DLLs")
         return
     python_executable = sys.executable
     python_dir = os.path.dirname(python_executable)
 
-    copy_pyds(folder_path, python_dir, disable_dll)
+    if os.name == 'nt' and not disable_dll:
+        copy_dlls_folder(folder_path, python_dir, disable_dll)
 
     if not disable_python_environment:
         shutil.copy(python_executable, os.path.join(folder_path, "python.exe" if os.name == 'nt' else 'python'))
@@ -74,11 +76,11 @@ def copy_include(folder_path):
     shutil.copytree(include_path, os.path.join(folder_path, 'include'))
     info('Copied include folder to build')
 
-def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
+def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, disable_lib_compressing):
     special_cases = list(get_special_cases())
 
     for module_name in cleaned_modules:
-        if module_name == '__main__' or module_name == 'PyCompyle':
+        if module_name == '__main__':
             continue
 
         ran_plugin = False
@@ -97,10 +99,13 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                 local_folder = os.path.join(source_dir, module_name)
                 if os.path.isdir(local_folder):
                     os.makedirs(os.path.join(folder_path, "local"), exist_ok=True)
-                    target_path = os.path.join(folder_path, "local", module_name) # when lib_c is used for a local import e.g. ./components the python interpreter it doesn't find it for some reason
+                    target_path = os.path.join(folder_path, "local" if not disable_lib_compressing else "lib", module_name) # when lib_c is used for a local import e.g. ./components the python interpreter it doesn't find it for some reason
                     try:
                         shutil.copytree(local_folder, target_path)
-                        info(f"Copied local folder module (no __init__.py): {module_name}")
+                        if logging.DEBUG >= logging.root.level:
+                            logging.debug(f"Copied local folder from {local_folder} to {target_path}")
+                        else:
+                            info(f"Copied local folder module (no __init__.py): {module_name}")
                     except Exception as e:
                         logging.error(f"Error copying local folder {local_folder}: {e}")
                 else:
@@ -108,7 +113,6 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                 continue
 
             origin_path = spec.origin
-
             if origin_path.endswith('__init__.py') or origin_path.endswith('__init__.pyc'):
                 package_folder = os.path.dirname(origin_path)
                 target_path = os.path.join(lib_path, os.path.basename(package_folder))
@@ -116,20 +120,28 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir):
                     if os.path.exists(target_path):
                         shutil.rmtree(target_path)
                     shutil.copytree(package_folder, target_path)
-                    info(f"Copied package folder: {os.path.basename(package_folder)}")
+                    if logging.DEBUG >= logging.root.level:
+                        logging.debug(f"Copied package from {package_folder} to {target_path}")
+                    else:
+                        info(f"Copied package folder: {os.path.basename(package_folder)}")
                 except Exception as e:
                     logging.error(f"Error copying package folder {package_folder}: {e}")
             else:
                 if origin_path.endswith('.pyd'):
                     try:
-                        shutil.copy2(origin_path, os.path.join(os.path.join(os.path.dirname(lib_path), 'Dlls'),
+                        shutil.copy2(origin_path, os.path.join(os.path.join(os.path.dirname(lib_path), 'DLLs'),
                                                               os.path.basename(origin_path)))
-                        info(f"Copied package PYD: {os.path.basename(origin_path)}")
+                        if logging.DEBUG >= logging.root.level:
+                            logging.debug(f"Copied PYD from {origin_path} to {os.path.join(os.path.dirname(lib_path), 'DLLs')}")
+                        else:
+                            info(f"Copied package PYD: {os.path.basename(origin_path)}")
                     except Exception as e:
                         logging.error(f"Error copying module PYD {origin_path}: {e}")
                 else:
                     try:
                         shutil.copy2(origin_path, os.path.join(lib_path, os.path.basename(origin_path)))
+                        if logging.DEBUG >= logging.root.level:
+                            logging.debug(f"Copied module file from {origin_path} to {lib_path}")
                         info(f"Copied package file: {os.path.basename(origin_path)}")
                     except Exception as e:
                         logging.error(f"Error copying module file {origin_path}: {e}")

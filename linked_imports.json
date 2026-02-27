@@ -16,5 +16,6 @@
   "gettext": ["locale"],
   "argparse": ["shutil"],
   "pythoncom": ["traceback", "winerror", "glob", "win32event", "pickle"],
-  "PIL": ["logging", "tempfile", "typing", "fractions"]
+  "PIL": ["logging", "tempfile", "typing", "fractions"],
+  "decimal": ["_pydecimal"]
 }

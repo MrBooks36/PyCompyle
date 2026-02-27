@@ -68,8 +68,8 @@ def create_executable(name, zip_path, bootloader, no_console, folder, folder_pat
             st = os.stat(f'{name}')
             os.chmod(os.path.join(folder_path, f'{name}.exe'if platform.system() == "Windows" else name), st.st_mode | stat.S_IXUSR)
 
-def compile_and_replace_py_to_pyc(folder):
-    directory = os.path.join(folder, "lib")
+def compile_and_replace_py_to_pyc(folder, name="lib"):
+    directory = os.path.join(folder, name)
     for root, _, files in os.walk(directory):
         for file in files:
             if file.endswith('.py'):
@@ -193,6 +193,10 @@ def add_uac(file_path):
     subprocess.run(command, stdout=subprocess.DEVNULL)
     os.remove(manifest_path)
 
+def write_pth(folder_path):
+    with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
+            file.write('DLLs\nlib\nlib_c.zip\nlocal\n.')
+
 def main(folder_path, args):
     folder_name = os.path.basename(folder_path).replace('.build', '')
     exe_path = os.path.join(folder_path, f'{folder_name}.exe' if args.folder else f'{folder_name}.exe')
@@ -204,16 +208,16 @@ def main(folder_path, args):
         add_icon_to_executable(os.path.join(folder_path, 'python'), args.icon, False)
 
     if not args.disable_compile:
-        info("Compiling code to PYC files for speed")
+        info("Generating byte-code")
         compile_and_replace_py_to_pyc(folder_path)
+        compile_and_replace_py_to_pyc(folder_path, "local")
         compile_main(folder_path)
 
     if not args.disable_python_environment or not args.disable_bootloader:
         info('Writing python args')
 
     if not args.disable_python_environment:
-        with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
-            file.write('Dlls\nlib\nlib_c.zip\nlocal\n.')
+        write_pth(folder_path)
 
     if not args.disable_bootloader:
         pyargs = list(args.pyarg or [])

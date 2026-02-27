@@ -89,6 +89,9 @@ def compress_with_upx(folder_path, threads):
     if not os.path.exists(upx_path):
         info("UPX not found, downloading...")
         upx_path = install_upx()
+        if upx_path is None:
+                logging.error("Failed to install UPX. Compression will be skipped.")
+                return
         if not os.path.exists(upx_path):
             logging.error("Failed to install UPX. Compression will be skipped.")
             return

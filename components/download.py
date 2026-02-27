@@ -1,4 +1,4 @@
-import os, requests, zipfile, logging, re, io, platform, stat, tarfile
+import os, requests, zipfile, logging, io, platform, stat, tarfile
 from datetime import datetime, timezone
 from logging import info
 
@@ -48,71 +48,95 @@ def install_upx():
     dest_folder = os.path.join(base_dir, "PyCompyle.cache")
     os.makedirs(dest_folder, exist_ok=True)
 
-    releases_url = "https://github.com/upx/upx/releases/latest"
-    resp = requests.get(releases_url, timeout=15)
+    api_url = "https://api.github.com/repos/upx/upx/releases/latest"
+
+    logging.debug("Fetching UPX release info from GitHub API")
+    resp = requests.get(api_url, timeout=15)
     resp.raise_for_status()
-    html = resp.text
+    data = resp.json()
 
-    if system == "Windows":
-        patterns = [
-            r"https://github\.com/upx/upx/releases/download/[^\"']+/upx-[^\"']+-win64\.zip",
-            r"https://github\.com/upx/upx/releases/download/[^\"']+/upx-[^\"']+-win32\.zip",
-        ]
-        binary_name = "upx.exe"
-        archive_type = "zip"
-
-    elif system == "Linux":
-        patterns = ['https://github.com/upx/upx/releases/download/v5.0.2/upx-5.0.2-amd64_linux.tar.xz']
-        binary_name = "upx"
-        archive_type = "tar.xz"
-
-    match = None
-    for pat in patterns:
-        match = re.search(pat, html)
-        if match:
-            logging.debug(f"Found UPX download link: {match.group(0)}")
-            break
-
-    if not match:
-        logging.error("Could not find UPX release for this platform.")
+    assets = data.get("assets", [])
+    if not assets:
+        logging.error("No assets found in UPX release")
         return None
 
-    archive_url = match.group(0)
-    resp = requests.get(archive_url, timeout=30)
+    # Determine platform match
+    if system == "Windows":
+        preferred = ["win64", "win32"]
+        archive_ext = ".zip"
+        binary_name = "upx.exe"
+    elif system == "Linux":
+        preferred = ["linux-amd64", "amd64"]
+        archive_ext = ".tar.xz"
+        binary_name = "upx"
+    else:
+        logging.error(f"Unsupported platform: {system}")
+        return None
+
+    archive_url = None
+
+    for pref in preferred:
+        for asset in assets:
+            name = asset["name"].lower()
+            if pref in name and name.endswith(archive_ext):
+                archive_url = asset["browser_download_url"]
+                logging.debug(f"Selected asset: {asset['name']}")
+                break
+        if archive_url:
+            break
+
+    if not archive_url:
+        logging.error("No suitable UPX binary found for this platform")
+        return None
+
+    logging.debug(f"Downloading UPX from {archive_url}")
+    resp = requests.get(archive_url, timeout=60)
     resp.raise_for_status()
 
-    if archive_type == "zip":
+    # Extract archive
+    if archive_ext == ".zip":
         with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
-            candidates = [n for n in zf.namelist() if n.endswith("/" + binary_name) or n.endswith(binary_name)]
+            candidates = [
+                n for n in zf.namelist()
+                if n.endswith("/" + binary_name) or n.endswith(binary_name)
+            ]
             if not candidates:
-                raise RuntimeError(f"{binary_name} not found in archive.")
+                raise RuntimeError(f"{binary_name} not found in archive")
+
             internal_path = candidates[0]
             zf.extract(internal_path, dest_folder)
             src_path = os.path.join(dest_folder, internal_path)
-    else:  # tar.xz
+
+    else:
         with tarfile.open(fileobj=io.BytesIO(resp.content), mode="r:xz") as tf:
-            candidates = [m for m in tf.getmembers() if m.name.endswith("/" + binary_name) or m.name.endswith(binary_name)]
+            candidates = [
+                m for m in tf.getmembers()
+                if m.name.endswith("/" + binary_name) or m.name.endswith(binary_name)
+            ]
             if not candidates:
-                raise RuntimeError(f"{binary_name} not found in archive.")
+                raise RuntimeError(f"{binary_name} not found in archive")
+
             member = candidates[0]
             tf.extract(member, dest_folder)
             src_path = os.path.join(dest_folder, member.name)
 
     final_path = os.path.join(dest_folder, binary_name)
+
+    # Move binary to flat location
     os.replace(src_path, final_path)
 
-    # Cleanup nested dirs
-    extracted_dir = os.path.dirname(src_path)
-    if extracted_dir and extracted_dir != dest_folder:
-        try:
-            os.rmdir(extracted_dir)
-        except OSError:
-            pass
+    try:
+        extracted_dir = os.path.dirname(src_path)
+        if extracted_dir != dest_folder:
+            os.removedirs(extracted_dir)
+    except OSError:
+        pass
 
-    # Linux: make executable
-    if system == "Linux":
-        logging.debug(f"Setting executable permissions for {final_path}")
+    # Make executable on Linux
+    if system != "Windows":
         st = os.stat(final_path)
         os.chmod(final_path, st.st_mode | stat.S_IEXEC)
+
+    logging.debug(f"UPX installed at {final_path}")
 
     return final_path

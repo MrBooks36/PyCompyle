@@ -1,4 +1,4 @@
-import os, shutil, stat, logging, subprocess, fnmatch, argparse, platform
+import os, shutil, stat, logging, subprocess, fnmatch, argparse, platform, sys
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
@@ -87,7 +87,12 @@ def main():
     parser.add_argument('-l','--include-linux', action='store_true', help='Create builds for Windows and Linux (requires WSL)')
     parser.add_argument('-ll','--build-linux-only', action='store_true', help='Create build for Linux only (requires WSL)')
     parser.add_argument('--no-zip', action='store_true', help='Do not create zip archives of the builds')
+    parser.add_argument("--test", action='store_true', help="Automatically load the build code into site-packages (Windows only)")
     args = parser.parse_args()
+    if args.test:
+        args.no_zip = True
+    if args.build_linux_only or args.include_linux:
+        logging.error("Linux is not compatible with --test")
 
     logging.info("Starting build process...")
     delete_pycache(main_folder)
@@ -97,5 +102,10 @@ def main():
     if args.include_linux and not args.build_linux_only:
         logging.info("Starting Linux build process...")
         build(suffix="linux" if args.include_linux else "", no_zip=args.no_zip)
+
+    if args.test:
+        logging.info("Moving to site-packages")
+        shutil.move(os.path.join(main_folder, 'build'), os.path.join(os.path.dirname(sys.executable), "lib", "site-packages", "PyCompyle"))
+
 if __name__ == '__main__':
     main()
