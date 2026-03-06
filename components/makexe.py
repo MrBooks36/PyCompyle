@@ -171,7 +171,7 @@ def add_uac(file_path):
         f.write(manifest_content)
 
     cache_path = (
-        os.path.expandvars(r"%LOCALAPPDATA%\PyCompyle.cache")
+        os.path.expandvars("%LOCALAPPDATA%\\PyCompyle.cache")
         if os.name == "nt"
         else os.path.expanduser("~/.cache/PyCompyle.cache")
     )

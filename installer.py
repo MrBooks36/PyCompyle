@@ -32,7 +32,7 @@ def get_latest_release(repo_url):
             data = json.loads(response.read().decode())
 
         if platform.system() == "Windows":
-            build_folder = "buildwind"
+            build_folder = "buildwin"
         elif platform.system() == "Linux":
             build_folder = "buildlinux"
 

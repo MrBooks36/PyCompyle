@@ -2,7 +2,7 @@ import os, sys, platform, subprocess, shutil, logging, argparse
 from getpass import getpass
 from logging import info
 
-sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.dirname(__file__)) # This is here so it works properly when it is in site-packages
 from components.imports import importcheck
 from components import makexe, copylogic
 from components.plugins import load_plugin, apply_monkey_patches, run_startup_code, run_halfway_code
@@ -12,28 +12,53 @@ def setup_logging(verbose=False):
     logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
 
 def check_system():
-    arch, _ = platform.architecture()
     system = platform.system()
     machine = platform.machine()
     release = platform.release()
 
-    # Check for Windows 10 or higher and 64-bit architecture or linux
-    if system == "Windows" and release >= "10" and arch == "64bit" and machine.endswith('64'):
+        # Check for Windows 10+ or linux with 64-bit architecture
+    if not machine.endswith('64'):
+        return False
+    
+    if system == "Windows" and release >= "10":
         return True
-    if system == "Linux" and arch == "64bit" and machine.endswith('64'):
+    elif system == "Linux":
         return True
+    return False
 
 def validate_platform():
     if not check_system():
-        logging.critical("PyCompyle is designed to run only on Windows 10 or higher 64-bit.")
+        logging.critical("PyCompyle is designed to run only on Windows 10+ or linux on 64-bit cpus")
         sys.exit(1)
 
 def setup_destination_folder(source_file):
-    destination_folder = os.path.abspath(source_file.replace('.py', '.build'))
+    destination_folder = os.path.abspath(os.path.splitext(source_file)[0]) + ".build"
     if os.path.exists(destination_folder):
         shutil.rmtree(destination_folder)
     os.makedirs(destination_folder)
     return destination_folder
+
+
+def run_argument_checking(args):
+    if args.windowed and args.bat:
+        logging.error('Windowed mode is not compatible with batchfile mode')
+        sys.exit(1)
+    
+    if args.uac and args.bat:
+        logging.error('UAC is not compatible with batchfile mode')
+        sys.exit(1)
+
+    if args.windowed and args.bootloader:
+        logging.error('Windowed mode is not compatible with a custom bootloader')
+        sys.exit(1)
+    
+    if args.bat and args.bootloader:
+        logging.error('Batchfile mode is not compatible with a custom bootloader')
+        sys.exit(1)
+
+    if platform.system() == "Linux" and args.uac:
+        logging.error("UAC is not supported on Linux")
+        sys.exit(1)
 
 
 def main():
@@ -70,13 +95,11 @@ def main():
     args = parser.parse_args()
     if args.debug:
         args.verbose = True
-    if platform.system() == "Linux" and args.uac:
-        logging.error("UAC is not supported on Linux")
-        sys.exit(1)
     if platform.system() == "Linux" and args.disable_lib_compressing == False:
         args.package.append('zlib') # needed for lib_c.zip
 
     setup_logging(args.verbose)
+    run_argument_checking(args)
 
     for plugin in args.plugin:
         try:
@@ -85,10 +108,12 @@ def main():
             logging.error(f"Failed to load plugin '{plugin}': {e}")
             sys.exit(1)
     apply_monkey_patches()
+
     folder_path = setup_destination_folder(args.source_file)
+
     startup_code = run_startup_code()
     if startup_code:
-        exec('\n'.join(run_startup_code()), globals(), locals())
+        exec('\n'.join(startup_code), globals(), locals())
 
     if args.debug:
         args.verbose = True
@@ -98,23 +123,6 @@ def main():
         args.windowed = False
     if args.zip or args.bat:
         args.folder = True
-
-    if args.windowed and args.bat:
-        logging.error('Windowed mode is not compatible with batchfile mode')
-        sys.exit(1)
-    if args.uac and args.bat:
-        logging.error('UAC is not compatible with batchfile mode')
-        sys.exit(1)
-
-    if args.windowed and args.bootloader:
-        logging.error('Windowed mode is not compatible with a custom bootloader')
-        sys.exit(1)
-    if args.uac and args.bootloader:
-        logging.error('UAC is not compatible with a custom bootloader')
-        sys.exit(1)
-    if args.bat and args.bootloader:
-        logging.error('Batchfile mode is not compatible with a custom bootloader')
-        sys.exit(1)
 
     source_file_path = os.path.abspath(args.source_file)
     info(f"Source file: {source_file_path}")

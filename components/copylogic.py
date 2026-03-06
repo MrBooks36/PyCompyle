@@ -60,7 +60,7 @@ def copy_tk(folder_path):
         info(f'Copied tcl directories')
 
     except Exception as e:
-        logging.error(f"An unexpected error occurred in copying tk: {e}")
+        logging.error(f"An unexpected error occurred in copying tcl: {e}")
 
 def copy_scripts(files, folder_path):
     if files: os.makedirs(os.path.join(folder_path, 'Scripts'), exist_ok=True)

@@ -1,6 +1,4 @@
-import ast
-import os
-import logging
+import ast, os, logging
 
 
 def get_imports_from_file(file_path, module_root):

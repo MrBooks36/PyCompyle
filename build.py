@@ -105,6 +105,7 @@ def main():
 
     if args.test:
         logging.info("Moving to site-packages")
+        shutil.rmtree(os.path.join(os.path.dirname(sys.executable), "lib", "site-packages", "PyCompyle"))
         shutil.move(os.path.join(main_folder, 'build'), os.path.join(os.path.dirname(sys.executable), "lib", "site-packages", "PyCompyle"))
 
 if __name__ == '__main__':
