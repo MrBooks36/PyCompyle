@@ -14,35 +14,9 @@ Simply download the `installer.py` script and execute it to install the latest v
 `python -m PyCompyle source_file` 
 
 
-### Arguments
+## Documentation
 
-- `-nc`, `--noconfirm`: Skip confirmation for wrapping the EXE .
-- `-f` `--folder`: Build to a folder instead of a onefile exe 
-- `-zip` `--zip`: Build to a zip instead of a onefile exe (Zip version of --folder) 
-- `-bat`, `--bat`: Use a .bat file for starting the built script instead of a exe for faster start times (Automatically implies --folder) 
-- `-i`, `--icon`: Specify an icon for the created EXE.
-- `-p`, `--package`: Include a package that might have been missed. Can be used multiple times to add multiple packages. *(CAPS matter)* 
-- `-v`, `--verbose`: Enable verbose output.
-- `-w`, `--windowed`: Create a windowed application; the console won't be displayed .
-- `-k`, `--keepfiles`: Keep the build files after packaging .
-- `-d`, `--debug`: Enable all debugging tools; turns `--verbose` and `--keepfiles` on, `--windowed` and `--zip` off. 
-- `-c`, `--copy`: File(s) or folder(s) to copy into the build directory. Can be used multiple times.
-- `-uac`, `--uac`: Add UAC prompt to the EXE.
-- `-pl`, `--plugin`: Load a plugin by path or name for built-in plugins
-- `--midwaycommand`: Run a CMD command or batch script before building the EXE
-- `-pyarg`, `--pyarg`: Add arguments to the startup of the python interpreter
-- `--include-script`: Add a file located in PYTHONPATH/Scripts
-- `--copy-include`: Copy PYTHONPATH/include
-- `--upx-threads`: How many threads to use when compressing with UPX. (More=faster but more straining. Less=slower but less straining)
-- `--force-refresh`: Remove the PyCompyle.cache folder and reinstall components.
-- `--disable-compile`: Disable compiling Lib to .pyc files (useful for debugging)
-- `--disable-compressing`: Disable compressing files
-- `--disable-password`: Disable the password on the onefile EXE
-
-
-## Example Command
-This command packages `my_script.py` into an EXE with a custom icon, enables verbose output, creates a windowed application and includes two additional packages
-`python -m PyCompyle --icon="myicon.ico" --verbose --windowed --package=numpy --package=ollama my_script.py`
+Documentation can be found in the [wiki](https://github.com/MrBooks36/PyCompyle/wiki)
 
 ## Contributing
 

@@ -16,7 +16,7 @@ def check_system():
     machine = platform.machine()
     release = platform.release()
 
-        # Check for Windows 10+ or linux with 64-bit architecture
+    # Check for Windows 10+ or linux with 64-bit architecture
     if not machine.endswith('64'):
         return False
     
@@ -121,7 +121,7 @@ def main():
         args.folder = True
         args.zip = False
         args.windowed = False
-    if args.zip or args.bat:
+    if any((args.zip, args.bat, args.disable_bootloader, args.disable_python_environment)):
         args.folder = True
 
     source_file_path = os.path.abspath(args.source_file)
