@@ -1,4 +1,4 @@
-Copyright 2025 MrBooks36
+Copyright 2026 MrBooks36
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
