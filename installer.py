@@ -105,7 +105,6 @@ def install_requirements(package_path):
         try:
             subprocess.run(
                 [sys.executable, "-m", "pip", "install", "-r", req_file],
-                capture_output=True,
                 text=True,
                 check=True
             )
