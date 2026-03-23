@@ -1,12 +1,9 @@
 import os, subprocess, logging, sys, ast, json, shutil
 from datetime import datetime, timedelta, timezone
 from logging import info
+from components.imports import getimports
+from components import download
 
-try:from components.imports import getimports
-except: from PyCompyle.components.imports import getimports # type: ignore
-try: from components import download
-except ImportError:
- from PyCompyle.components import download # type: ignore
 
 def load_linked_imports(force_refresh=False):
     local_appdata = os.environ.get("LOCALAPPDATA") if os.name == 'nt' else os.path.expanduser('~/.cache')

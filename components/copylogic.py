@@ -1,6 +1,24 @@
-import sys, os, logging, shutil, importlib.util, platform
+import sys, os, logging, shutil, importlib.util, platform, configparser
 from components.plugins import get_special_cases
 from logging import info
+
+def find_python_home():
+    python_exe = sys.executable
+    python_dir = os.path.dirname(sys.executable)
+
+    if sys.prefix != sys.base_prefix:
+        cfg_path = os.path.join(sys.prefix, "pyvenv.cfg")
+
+        cfg = configparser.ConfigParser()
+        with open(cfg_path) as f:
+            cfg.read_string("[venv]\n" + f.read())
+
+        python_dir = cfg.get("venv", "home", fallback=None)
+        python_exe = cfg.get("venv", "executable", fallback=None)
+        info(f"Found root python dir {python_dir}")
+        info(f"Found root python executable {python_exe}")
+
+    return python_exe, python_dir
 
 def find_dlls_with_phrase(directory, phrase):
     return [
@@ -21,8 +39,7 @@ def copy_python_executable(folder_path, disable_python_environment, disable_dll)
     if disable_python_environment:
         logging.debug("Skipping copying Python executable and DLLs")
         return
-    python_executable = sys.executable
-    python_dir = os.path.dirname(python_executable)
+    python_executable, python_dir = find_python_home()
 
     if os.name == 'nt' and not disable_dll:
         copy_dlls_folder(folder_path, python_dir, disable_dll)
@@ -38,7 +55,7 @@ def copy_python_executable(folder_path, disable_python_environment, disable_dll)
 
 def copy_tk(folder_path):
     try:
-        python_folder = os.path.dirname(sys.executable)
+        _, python_folder = find_python_home()
         tcl_directory = os.path.join(python_folder, 'tcl')
 
         if not os.path.exists(tcl_directory):
