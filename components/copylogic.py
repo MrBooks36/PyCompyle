@@ -1,6 +1,13 @@
-import sys, os, logging, shutil, importlib.util, platform, configparser
+import sys
+import os
+import logging
+import shutil
+import importlib.util
+import platform
+import configparser
 from components.plugins import get_special_cases
 from logging import info
+
 
 def find_python_home():
     python_exe = sys.executable
@@ -20,11 +27,13 @@ def find_python_home():
 
     return python_exe, python_dir
 
+
 def find_dlls_with_phrase(directory, phrase):
     return [
         os.path.join(directory, filename) for filename in os.listdir(directory)
         if filename.lower().endswith('.dll') and phrase.lower() in filename.lower()
     ]
+
 
 def copy_dlls_folder(folder_path, python_dir, disable_dll=False):
     if platform.system() == "Windows" and not disable_dll:
@@ -48,10 +57,11 @@ def copy_python_executable(folder_path, disable_python_environment, disable_dll)
         shutil.copy(python_executable, os.path.join(folder_path, "python.exe" if os.name == 'nt' else 'python'))
         info(f"Copied Python executable to {folder_path}")
     python_dir = os.path.dirname(python_executable)
-    
+
     for dll_phrase in ['python', 'vcruntime']:
         for dll in find_dlls_with_phrase(python_dir, dll_phrase):
             shutil.copy(dll, folder_path)
+
 
 def copy_tk(folder_path):
     try:
@@ -79,19 +89,24 @@ def copy_tk(folder_path):
     except Exception as e:
         logging.error(f"An unexpected error occurred in copying tcl: {e}")
 
+
 def copy_scripts(files, folder_path):
-    if files: os.makedirs(os.path.join(folder_path, 'Scripts'), exist_ok=True)
+    if files:
+        os.makedirs(os.path.join(folder_path, 'Scripts'), exist_ok=True)
     for filename in files:
         file = os.path.join(os.path.dirname(sys.executable), "Scripts", filename)
         if os.path.exists(file):
             shutil.copy2(file, os.path.join(folder_path, "Scripts", filename))
             logging.debug(f"Copied {filename} to build")
-        else: logging.warning(f"{filename} not found in Scripts dir")
+        else:
+            logging.warning(f"{filename} not found in Scripts dir")
+
 
 def copy_include(folder_path):
     include_path = os.path.join(os.path.dirname(sys.executable), "include")
     shutil.copytree(include_path, os.path.join(folder_path, 'include'))
     info('Copied include folder to build')
+
 
 def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, disable_lib_compressing):
     special_cases = list(get_special_cases())
@@ -116,7 +131,8 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, disabl
                 local_folder = os.path.join(source_dir, module_name)
                 if os.path.isdir(local_folder):
                     os.makedirs(os.path.join(folder_path, "local"), exist_ok=True)
-                    target_path = os.path.join(folder_path, "local" if not disable_lib_compressing else "lib", module_name) # when lib_c is used for a local import e.g. ./components the python interpreter it doesn't find it for some reason
+                    # when lib_c is used for a local import e.g. ./components the python interpreter it doesn't find it for some reason
+                    target_path = os.path.join(folder_path, "local" if not disable_lib_compressing else "lib", module_name)
                     try:
                         shutil.copytree(local_folder, target_path)
                         if logging.DEBUG >= logging.root.level:
@@ -147,9 +163,10 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, disabl
                 if origin_path.endswith('.pyd'):
                     try:
                         shutil.copy2(origin_path, os.path.join(os.path.join(os.path.dirname(lib_path), 'DLLs'),
-                                                              os.path.basename(origin_path)))
+                                                               os.path.basename(origin_path)))
                         if logging.DEBUG >= logging.root.level:
-                            logging.debug(f"Copied PYD from {origin_path} to {os.path.join(os.path.dirname(lib_path), 'DLLs')}")
+                            logging.debug(
+                                f"Copied PYD from {origin_path} to {os.path.join(os.path.dirname(lib_path), 'DLLs')}")
                         else:
                             info(f"Copied package PYD: {os.path.basename(origin_path)}")
                     except Exception as e:

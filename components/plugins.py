@@ -1,7 +1,14 @@
-import os, sys, logging, inspect, textwrap, importlib.machinery, importlib.util
+import os
+import sys
+import logging
+import inspect
+import textwrap
+import importlib.machinery
+import importlib.util
 from logging import info
 
 plugins = []
+
 
 def load_plugin(plugin_path):
     if os.path.isfile(plugin_path):
@@ -17,8 +24,10 @@ def load_plugin(plugin_path):
         logging.warning(f"Plugin path {plugin_path} does not exist. Skipping.")
         return
 
+
 def _load_module(path):
     return importlib.machinery.SourceFileLoader(os.path.basename(path), path).load_module()
+
 
 def apply_monkey_patches():
     replacements = []
@@ -62,7 +71,7 @@ def apply_monkey_patches():
             else:
                 replacements.append((target_mod, attr_name, patch_func, plugin_path))
 
-    for target_mod, attr_name, patch_func, plugin_path in replacements: # This will only use the last one passed
+    for target_mod, attr_name, patch_func, plugin_path in replacements:  # This will only use the last one passed
         try:
             setattr(target_mod, attr_name, patch_func)
             logging.info(f"Replaced {target_mod.__name__}.{attr_name} from {plugin_path}")
@@ -123,7 +132,6 @@ def _create_code(plugin_path, func_name):
     source = inspect.getsource(getattr(mod, func_name))
     body = textwrap.dedent("\n".join(source.splitlines()[1:])) + "\n"
 
-
     header = (
         'import importlib.machinery, os\n'
         f"plugin = importlib.machinery.SourceFileLoader(r'{plugin_path}', r'{plugin_path}').load_module()\n"
@@ -131,17 +139,20 @@ def _create_code(plugin_path, func_name):
 
     return header + body
 
+
 def run_startup_code():
     for plugin_path in plugins:
         code = _create_code(plugin_path, "init")
         if code:
             yield code
 
+
 def run_halfway_code():
     for plugin_path in plugins:
         code = _create_code(plugin_path, "midway")
         if code:
             yield code
+
 
 def run_end_code():
     for plugin_path in plugins:

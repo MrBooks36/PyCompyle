@@ -1,27 +1,32 @@
-#![cfg_attr(
-    all(windows, not(feature = "console")),
-    windows_subsystem = "windows"
-)]
-use std::fs::{self};
-use std::fs::File;
-use std::env;
-use std::time::{SystemTime, UNIX_EPOCH};
+#![cfg_attr(all(windows, not(feature = "console")), windows_subsystem = "windows")]
 use anyhow::{Result, anyhow};
+use std::env;
+use std::fs::File;
+use std::fs::{self};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::process::id;
-
+use std::time::{SystemTime, UNIX_EPOCH};
 
 struct Options {
     pub exe: PathBuf,
-    pub debug: bool
+    pub debug: bool,
 }
 
 fn generate_unique_output_dir() -> Result<String> {
     let base_path = env::var("TEMP").unwrap_or_else(|_| {
-        #[cfg(target_os = "windows")] { r"C:\Windows\TEMP".to_string() }
-        #[cfg(target_os = "linux")] { "/tmp".to_string() }
-        #[cfg(not(any(target_os = "windows", target_os = "linux")))] { return Err(anyhow!("unsupported platform")) }
+        #[cfg(target_os = "windows")]
+        {
+            r"C:\Windows\TEMP".to_string()
+        }
+        #[cfg(target_os = "linux")]
+        {
+            "/tmp".to_string()
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+        {
+            return Err(anyhow!("unsupported platform"));
+        }
     });
     let now = SystemTime::now();
     let since_epoch = now.duration_since(UNIX_EPOCH).unwrap();
@@ -42,7 +47,7 @@ fn extract_embedded_zip(output_dir: &Path, options: &Options) -> Result<()> {
     }
 
     let names: Vec<String> = archive.file_names().map(|s| s.to_owned()).collect();
-    
+
     for file_name in names {
         let mut entry = archive.by_name_decrypt(&file_name, password.as_bytes())?;
         let outpath = output_dir.join(entry.name());
@@ -56,12 +61,10 @@ fn extract_embedded_zip(output_dir: &Path, options: &Options) -> Result<()> {
             let mut outfile = File::create(&outpath)?;
             std::io::copy(&mut entry, &mut outfile)?;
         }
-
     }
-    
+
     Ok(())
 }
-
 
 fn add_sys_mod(script_path: &Path, options: &Options) -> Result<()> {
     let exe = options.exe.to_string_lossy();
@@ -92,15 +95,14 @@ fn run_extracted_executable(output_dir: &Path, options: &Options) -> Result<()> 
     let python_executable = output_dir.join("python");
 
     let script_path = output_dir.join("__main__.py");
-    
 
     if !Path::new(&script_path).exists() {
         eprintln!("Error: __main__.py missing");
         return Err(anyhow!("Error: __main__.py missing"));
     }
-    
+
     add_sys_mod(&script_path, options)?;
-    
+
     let mut pyargs = vec!["-B".to_string()];
     let pyargs_file = format!("{:?}/pyargs", output_dir);
 
@@ -132,9 +134,7 @@ fn run_extracted_executable(output_dir: &Path, options: &Options) -> Result<()> 
 
     // Run python process
     let mut cmd = Command::new(python_executable);
-    cmd.args(&pyargs)
-        .arg(script_path)
-        .args(&additional_args);
+    cmd.args(&pyargs).arg(script_path).args(&additional_args);
 
     match cmd.status() {
         Ok(status) => {
@@ -142,13 +142,13 @@ fn run_extracted_executable(output_dir: &Path, options: &Options) -> Result<()> 
                 println!("Python exited with: {}", status);
             }
             Ok(())
-        },
+        }
         Err(e) => {
             if options.debug {
-            eprintln!("Failed to run Python: {}", e);
-        }
+                eprintln!("Failed to run Python: {}", e);
+            }
             Err(anyhow!("{}", e))
-        },
+        }
     }
 }
 
@@ -156,42 +156,39 @@ fn cleanup_directory(output_dir: &Path) -> bool {
     fs::remove_dir_all(output_dir).is_ok()
 }
 
-    
 fn main() -> Result<()> {
     let options = Options {
         exe: std::env::current_exe()?,
         debug: match env::var("PYCOMPYLEDEBUG") {
-            Ok(v) => {
-                v == "1"
-            },
-            Err(_) => false
+            Ok(v) => v == "1",
+            Err(_) => false,
         },
     };
-    
+
     if options.debug {
         println!("Bootloader started");
     }
 
     let output_dir = generate_unique_output_dir()?;
     let output_dir = Path::new(&output_dir);
-    
 
     match extract_embedded_zip(output_dir, &options) {
         Ok(_) => {
             run_extracted_executable(output_dir, &options)?;
 
             cleanup_directory(output_dir);
-
         }
         Err(e) => {
-
-            let pth = options.exe.parent().ok_or_else(|| anyhow!("asd"))?.join("__main__.py");
+            let pth = options
+                .exe
+                .parent()
+                .ok_or_else(|| anyhow!("asd"))?
+                .join("__main__.py");
             if pth.exists() {
                 run_extracted_executable(&pth.parent().unwrap(), &options)?;
             } else {
-                return Err(anyhow!("Error: {e}"))
+                return Err(anyhow!("Error: {e}"));
             }
-
         }
     }
 

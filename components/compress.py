@@ -1,8 +1,16 @@
-import os, shutil, logging, pyzipper, subprocess, hashlib, time, stat
+import os
+import shutil
+import logging
+import pyzipper
+import subprocess
+import hashlib
+import time
+import stat
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging import info
 from components.download import install_upx
+
 
 def compress_folder_with_progress(folder_path, output_zip_name, password=None, compression_level=6, text='INFO: Zipping'):
     total_size = sum(
@@ -14,13 +22,13 @@ def compress_folder_with_progress(folder_path, output_zip_name, password=None, c
     encryption = pyzipper.WZ_AES if password else None
 
     with tqdm(total=total_size, unit='B', unit_scale=True, desc=text) as pbar, \
-         pyzipper.AESZipFile(
-             f"{output_zip_name}.zip",
-             'w',
-             compression=pyzipper.ZIP_DEFLATED,
-             compresslevel=compression_level,
-             encryption=encryption
-         ) as zipf:
+        pyzipper.AESZipFile(
+        f"{output_zip_name}.zip",
+        'w',
+        compression=pyzipper.ZIP_DEFLATED,
+        compresslevel=compression_level,
+        encryption=encryption
+    ) as zipf:
 
         if password:
             zipf.setpassword(password.encode('utf-8'))
@@ -31,6 +39,7 @@ def compress_folder_with_progress(folder_path, output_zip_name, password=None, c
                 arcname = os.path.relpath(file_path, folder_path)
                 zipf.write(file_path, arcname)
                 pbar.update(os.path.getsize(file_path))
+
 
 def compress_top_level_pyc(lib_folder, output_name="lib_c"):
     lib_c_path = os.path.join(os.path.dirname(lib_folder), output_name)
@@ -53,7 +62,7 @@ def compress_top_level_pyc(lib_folder, output_name="lib_c"):
                 for root, _, files in os.walk(item_path)
                 for f in files
                 if os.path.isfile(os.path.join(root, f))
-                )
+            )
             if only_pyc_or_py:
                 shutil.move(item_path, lib_c_path)
 
@@ -68,7 +77,8 @@ def compress_top_level_pyc(lib_folder, output_name="lib_c"):
 
     shutil.rmtree(lib_c_path)
 
-def compress_with_upx(folder_path, threads):
+
+def compress_with_upx(folder_path, threads, noconfirm):
     max_workers = max(1, os.cpu_count() // 2) if threads == 'default' else threads
     if max_workers <= 0:
         return
@@ -88,10 +98,10 @@ def compress_with_upx(folder_path, threads):
 
     if not os.path.exists(upx_path):
         info("UPX not found, downloading...")
-        upx_path = install_upx()
+        upx_path = install_upx(noconfirm)
         if upx_path is None:
-                logging.error("Failed to install UPX. Compression will be skipped.")
-                return
+            logging.error("Failed to install UPX. Compression will be skipped.")
+            return
         if not os.path.exists(upx_path):
             logging.error("Failed to install UPX. Compression will be skipped.")
             return
@@ -99,8 +109,7 @@ def compress_with_upx(folder_path, threads):
     if not is_windows:
         st = os.stat(upx_path)
         if not (st.st_mode & stat.S_IXUSR):
-            os.chmod(upx_path, st.st_mode | stat.S_IXUSR)           
-
+            os.chmod(upx_path, st.st_mode | stat.S_IXUSR)
 
     def hash_file(path):
         h = hashlib.sha256()
@@ -164,6 +173,7 @@ def compress_with_upx(folder_path, threads):
                     logging.debug(f"Removed stale cache file: {name}")
         except Exception as e:
             logging.warning(f"Failed to check/remove cache file {name}: {e}")
+
 
 def compress_file_with_upx(file_path):
     is_windows = os.name == "nt"

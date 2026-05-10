@@ -4,6 +4,7 @@ import subprocess
 
 is_windows = os.name == "nt"
 
+
 def build_rust(build_args, out_name):
     print("Building", out_name)
 
@@ -13,7 +14,6 @@ def build_rust(build_args, out_name):
         check=True,
     )
 
-    
     exe_name = "bootloader" + (".exe" if is_windows else "")
 
     src = os.path.join(
@@ -29,10 +29,11 @@ def build_rust(build_args, out_name):
 
 
 def main():
-    #shutil.rmtree('EXEs', ignore_errors=True)
+    # shutil.rmtree('EXEs', ignore_errors=True)
     os.makedirs('EXEs', exist_ok=True)
     build_rust(["--features", "console"], "bootloader")
     build_rust(["--no-default-features"], "bootloaderw")
+
 
 if __name__ == "__main__":
     main()

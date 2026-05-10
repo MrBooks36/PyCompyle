@@ -1,4 +1,14 @@
-import os, sys, zipfile, io,subprocess, shutil, json, sysconfig, tempfile, platform, argparse
+import os
+import sys
+import zipfile
+import io
+import subprocess
+import shutil
+import json
+import sysconfig
+import tempfile
+import platform
+import argparse
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 from subprocess import CalledProcessError
@@ -57,12 +67,14 @@ def get_latest_release(repo_url):
     except URLError as e:
         raise Exception(f"URL Error: {e.reason}") from e
 
+
 def _safe_extract(zip_file, path):
     for member in zip_file.namelist():
         member_path = os.path.abspath(os.path.join(path, member))
         if not member_path.startswith(os.path.abspath(path) + os.sep):
             raise Exception("Zip file contains unsafe paths")
     zip_file.extractall(path)
+
 
 def download_and_extract_zip(zip_url, extract_to):
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -98,6 +110,7 @@ def download_and_extract_zip(zip_url, extract_to):
     except Exception as e:
         raise Exception(f"Failed to download and extract zip: {e}") from e
 
+
 def install_requirements(package_path):
     req_file = os.path.join(package_path, "requirements.txt")
     if os.path.exists(req_file):
@@ -113,6 +126,7 @@ def install_requirements(package_path):
             raise Exception("Failed to install requirements") from e
     else:
         print("No requirements.txt found, skipping dependency installation.")
+
 
 def install_latest_release(repo_url):
     site_packages_path = get_site_packages_path()
@@ -138,32 +152,33 @@ def main():
         if not args.headless:
             input("Press enter to exit...")
         return
-    
+
     if args.update:
-            if check_if_already_installed():
-                print("PyCompyle is already installed. Reinstalling...")
-            else:
-                print("Installing PyCompyle...")
-            install_latest_release(repository)
-            if not args.headless:
-                input("Press enter to exit...")
-            return
+        if check_if_already_installed():
+            print("PyCompyle is already installed. Reinstalling...")
+        else:
+            print("Installing PyCompyle...")
+        install_latest_release(repository)
+        if not args.headless:
+            input("Press enter to exit...")
+        return
 
     if check_if_already_installed():
-            choice = input("PyCompyle is already installed. [R]emove, [U]pdate/Repair, [Any other button] Cancel: ").lower()
-            if choice == 'r':
-                uninstall()
-            elif choice == 'u':
-                print("Reinstalling PyCompyle...")
-                install_latest_release(repository)
-            else:
-                print("Canceled.")
-    else:
-            print("Installing PyCompyle...")
+        choice = input("PyCompyle is already installed. [R]emove, [U]pdate/Repair, [Any other button] Cancel: ").lower()
+        if choice == 'r':
+            uninstall()
+        elif choice == 'u':
+            print("Reinstalling PyCompyle...")
             install_latest_release(repository)
+        else:
+            print("Canceled.")
+    else:
+        print("Installing PyCompyle...")
+        install_latest_release(repository)
 
     if not args.headless:
-        input("Press enter to exit...")    
+        input("Press enter to exit...")
+
 
 if __name__ == "__main__":
     main()

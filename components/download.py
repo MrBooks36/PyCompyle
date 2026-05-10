@@ -1,11 +1,35 @@
-import os, requests, zipfile, logging, io, platform, stat, tarfile
+import os
+import requests
+import zipfile
+import logging
+import io
+import platform
+import stat
+import tarfile
 from datetime import datetime, timezone
 from logging import info
 
-def download_resourcehacker(cache_path):
+
+def request_download(prompt, noconfirm):
+    if noconfirm:
+        return True
+    choice = input(f"INFO: {prompt} (y/n): ")
+    while True:
+        choice = choice.lower().strip()
+        if choice == "y":
+            return True
+        elif choice == "n":
+            return False
+
+        choice = input("ERROR: Please enter 'y' or 'n': ")
+
+
+def download_resourcehacker(cache_path, noconfirm):
+    if not request_download("ResourceHacker is a requirement for adding icons and uac to executables.\nDo you want to install it", noconfirm):
+        return None
     url = 'https://www.angusj.com/resourcehacker/resource_hacker.zip'
     os.makedirs(cache_path, exist_ok=True)
-    cache_path= os.path.join(cache_path, 'resource_hacker')
+    cache_path = os.path.join(cache_path, 'resource_hacker')
     os.makedirs(cache_path, exist_ok=True)
 
     zip_filename = os.path.join(cache_path, 'resource_hacker.zip')
@@ -23,7 +47,7 @@ def download_resourcehacker(cache_path):
 
 
 def download_and_update_linked_imports(cache_file="linked_imports.json", timestamp_file="linked_imports_timestamp.txt"):
-    github_url="https://raw.githubusercontent.com/MrBooks36/PyCompyle/main/linked_imports.json"
+    github_url = "https://raw.githubusercontent.com/MrBooks36/PyCompyle/main/linked_imports.json"
     info('Refreshing linked_imports.json')
     try:
         logging.debug(f"Downloading linked_imports.json from GitHub: {github_url}")
@@ -37,11 +61,12 @@ def download_and_update_linked_imports(cache_file="linked_imports.json", timesta
     except Exception as e:
         logging.warning(f"Failed to download linked_imports.json: {e}")
 
-def install_upx():
+
+def install_upx(noconfirm):
     system = platform.system()
 
     if system == "Windows":
-        base_dir = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
+        base_dir = os.environ.get("LOCALAPPDATA", os.path.expanduser("~/appdata/local"))
     else:
         base_dir = os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
 
@@ -89,7 +114,10 @@ def install_upx():
         logging.error("No suitable UPX binary found for this platform")
         return None
 
-    logging.debug(f"Downloading UPX from {archive_url}")
+    if not request_download("UPX is a requirement needed to compress binary files.\nDo you want to install it.", noconfirm):
+        return None
+
+    logging.info(f"Downloading UPX from {archive_url}")
     resp = requests.get(archive_url, timeout=60)
     resp.raise_for_status()
 
@@ -122,7 +150,6 @@ def install_upx():
 
     final_path = os.path.join(dest_folder, binary_name)
 
-    # Move binary to flat location
     os.replace(src_path, final_path)
 
     try:

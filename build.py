@@ -1,8 +1,17 @@
-import os, shutil, stat, logging, subprocess, fnmatch, argparse, platform, sys
+import os
+import shutil
+import stat
+import logging
+import subprocess
+import fnmatch
+import argparse
+import platform
+import sys
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 main_folder = os.path.abspath(os.path.dirname(__file__))
+
 
 def remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
@@ -18,6 +27,7 @@ def delete_pycache(start_dir):
             except Exception:
                 pass
 
+
 def read_gitignore(file_path):
     logging.info(f"Reading .gitignore")
     patterns = []
@@ -27,6 +37,7 @@ def read_gitignore(file_path):
             if line and not line.startswith('#'):
                 patterns.append(line)
     return patterns
+
 
 def delete_matching_paths(root_path, patterns):
     for root, dirs, files in os.walk(root_path):
@@ -44,10 +55,11 @@ def delete_matching_paths(root_path, patterns):
                 except Exception:
                     pass
 
+
 def build(suffix, no_zip=False, build_linux_only=False):
     logging.info(f"Compiling EXEs...")
     if suffix == "linux" and platform.system().lower() != "linux" or build_linux_only:
-        subprocess.run(["wsl.exe", "--", "bash", "-lc", "python3 execompile.py"],check=True)
+        subprocess.run(["wsl.exe", "--", "bash", "-lc", "python3 execompile.py"], check=True)
     else:
         subprocess.run(['python', os.path.join(main_folder, 'execompile.py')])
 
@@ -82,12 +94,15 @@ def build(suffix, no_zip=False, build_linux_only=False):
         shutil.make_archive(build_folder, 'zip', build_folder)
         logging.info('Build process completed successfully.')
 
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-l','--include-linux', action='store_true', help='Create builds for Windows and Linux (requires WSL)')
-    parser.add_argument('-ll','--build-linux-only', action='store_true', help='Create build for Linux only (requires WSL)')
+    parser.add_argument('-l', '--include-linux', action='store_true',
+                        help='Create builds for Windows and Linux (requires WSL)')
+    parser.add_argument('-ll', '--build-linux-only', action='store_true', help='Create build for Linux only (requires WSL)')
     parser.add_argument('--no-zip', action='store_true', help='Do not create zip archives of the builds')
-    parser.add_argument("--test", action='store_true', help="Automatically load the build code into site-packages (Windows only)")
+    parser.add_argument("--test", action='store_true',
+                        help="Automatically load the build code into site-packages (Windows only)")
     args = parser.parse_args()
     if args.test:
         args.no_zip = True
@@ -106,7 +121,9 @@ def main():
     if args.test:
         logging.info("Moving to site-packages")
         shutil.rmtree(os.path.join(os.path.dirname(sys.executable), "lib", "site-packages", "PyCompyle"))
-        shutil.move(os.path.join(main_folder, 'build'), os.path.join(os.path.dirname(sys.executable), "lib", "site-packages", "PyCompyle"))
+        shutil.move(os.path.join(main_folder, 'build'), os.path.join(
+            os.path.dirname(sys.executable), "lib", "site-packages", "PyCompyle"))
+
 
 if __name__ == '__main__':
     main()

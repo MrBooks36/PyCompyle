@@ -1,4 +1,6 @@
-import ast, os, logging
+import ast
+import os
+import logging
 
 
 def get_imports_from_file(file_path, module_root):
@@ -32,6 +34,7 @@ def get_imports_from_file(file_path, module_root):
 
     return imports
 
+
 def resolve_local_path(module_name, base_dir):
     parts = module_name.split('.')
     py_file = os.path.join(base_dir, *parts) + ".py"
@@ -47,6 +50,7 @@ def resolve_local_path(module_name, base_dir):
                 if file.endswith(".py"):
                     results.append(os.path.join(root, file))
     return results
+
 
 def recursive_imports(entry_file, visited=None, base_dir=None):
     if visited is None:

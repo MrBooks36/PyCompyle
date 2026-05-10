@@ -1,4 +1,10 @@
-import os, subprocess, logging, sys, ast, json, shutil
+import os
+import subprocess
+import logging
+import sys
+import ast
+import json
+import shutil
 from datetime import datetime, timedelta, timezone
 from logging import info
 from components.imports import getimports
@@ -11,7 +17,7 @@ def load_linked_imports(force_refresh=False):
     cache_file = os.path.join(cache_dir, "linked_imports.json")
     timestamp_file = os.path.join(cache_dir, "linked_imports.timestamp")
     refresh_interval = timedelta(hours=24)
-    local_json = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "linked_imports.json") # type: ignore
+    local_json = os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "linked_imports.json")  # type: ignore
     if force_refresh:
         shutil.rmtree(cache_dir, ignore_errors=True)
 
@@ -32,7 +38,8 @@ def load_linked_imports(force_refresh=False):
     if needs_refresh:
         download.download_and_update_linked_imports(cache_file, timestamp_file)
 
-    if os.path.exists(local_json) and os.path.exists(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "localjson")): # type: ignore
+    # type: ignore
+    if os.path.exists(local_json) and os.path.exists(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "localjson")):
         try:
             with open(local_json, "r", encoding="utf-8") as f:
                 logging.info("Using local linked_imports.json")
@@ -58,6 +65,7 @@ def load_linked_imports(force_refresh=False):
     logging.warning("No valid linked_imports.json could be loaded from local or cache.")
     return {}
 
+
 def resolve_linked_imports_recursive(base_modules, linked_map):
     resolved = set()
     queue = list(base_modules)
@@ -70,6 +78,7 @@ def resolve_linked_imports_recursive(base_modules, linked_map):
             logging.debug(f"Module '{module}' links to: {linked}")
             queue.extend(linked)
     return resolved
+
 
 def run_import_checker(imports, source_dir, tmp_script_path, tmp_output_path):
     imports = list(imports)
@@ -97,6 +106,7 @@ def run_import_checker(imports, source_dir, tmp_script_path, tmp_output_path):
         modules = []
 
     return modules
+
 
 def process_imports(source_file_path, packages, keepfile, force_refresh=False):
     source_dir = os.path.dirname(source_file_path)

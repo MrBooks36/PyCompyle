@@ -1,4 +1,13 @@
-import os, subprocess, py_compile, shutil, logging, time, tempfile, sys, platform, stat
+import os
+import subprocess
+import py_compile
+import shutil
+import logging
+import time
+import tempfile
+import sys
+import platform
+import stat
 from components.download import download_resourcehacker
 from components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx, compress_file_with_upx
 from components.plugins import run_end_code
@@ -9,13 +18,14 @@ RETRY_DELAY = 2  # seconds
 
 
 def zip_embeder(name, exe_file, zip_file):
-        output_file = os.path.join(os.getcwd(), f'{name}.exe' if platform.system() == "Windows" else name)
+    output_file = os.path.join(os.getcwd(), f'{name}.exe' if platform.system() == "Windows" else name)
 
-        with open(output_file, 'wb') as output:
-            with open(exe_file, 'rb') as f_exe:
-                output.write(f_exe.read())
-            with open(zip_file, 'rb') as f_zip:
-                output.write(f_zip.read())
+    with open(output_file, 'wb') as output:
+        with open(exe_file, 'rb') as f_exe:
+            output.write(f_exe.read())
+        with open(zip_file, 'rb') as f_zip:
+            output.write(f_zip.read())
+
 
 def delete_pycache(start_dir):
     deleted_count = 0
@@ -40,15 +50,15 @@ def create_executable(name, zip_path, bootloader, no_console, folder, folder_pat
 
     os.makedirs(exe_folder, exist_ok=True)
     if platform.system() == "Windows":
-     bootloader_map = {
-        (False): "bootloader.exe",
-        (True): "bootloaderw.exe",
-     }
+        bootloader_map = {
+            (False): "bootloader.exe",
+            (True): "bootloaderw.exe",
+        }
     elif platform.system() == "Linux":
-     bootloader_map = {
-        (False): "bootloader",
-        (True): "bootloaderw",
-    }
+        bootloader_map = {
+            (False): "bootloader",
+            (True): "bootloaderw",
+        }
 
     if not bootloader:
         bootloader = bootloader_map[(no_console)]
@@ -56,17 +66,19 @@ def create_executable(name, zip_path, bootloader, no_console, folder, folder_pat
     else:
         info(f'Using custom bootloader: "{bootloader}"')
 
-
     if not folder:
         zip_embeder(name, bootloader, zip_path)
         if platform.system() == "Linux":
             st = os.stat(f'{name}')
             os.chmod(f'{name}', st.st_mode | stat.S_IXUSR)
     else:
-        shutil.copyfile(src=bootloader, dst=os.path.join(folder_path, f'{name}.exe'if platform.system() == "Windows" else name))
+        shutil.copyfile(src=bootloader, dst=os.path.join(
+            folder_path, f'{name}.exe'if platform.system() == "Windows" else name))
         if platform.system() == "Linux":
             st = os.stat(f'{name}')
-            os.chmod(os.path.join(folder_path, f'{name}.exe'if platform.system() == "Windows" else name), st.st_mode | stat.S_IXUSR)
+            os.chmod(os.path.join(folder_path, f'{name}.exe'if platform.system()
+                     == "Windows" else name), st.st_mode | stat.S_IXUSR)
+
 
 def compile_and_replace_py_to_pyc(folder, name="lib"):
     directory = os.path.join(folder, name)
@@ -82,9 +94,9 @@ def compile_and_replace_py_to_pyc(folder, name="lib"):
                     temp_file_path = os.path.join(temp_dir, file)
 
                     shutil.copy2(py_file_path, temp_file_path)
-                    pyc_file_path = py_file_path + 'c' 
+                    pyc_file_path = py_file_path + 'c'
 
-                    try:     
+                    try:
                         display_file_path = os.path.relpath(py_file_path, directory)
                         py_compile.compile(temp_file_path, cfile=pyc_file_path, dfile=display_file_path, doraise=True)
                         os.remove(py_file_path)
@@ -97,51 +109,56 @@ def compile_and_replace_py_to_pyc(folder, name="lib"):
                 finally:
                     shutil.rmtree(temp_dir)
 
+
 def compile_main(folder_path):
     main_file = os.path.join(folder_path, '__main__.py')
     with open(main_file, 'r') as f:
-            original_content = f.read()
+        original_content = f.read()
 
     modified_content = "__name__ = '__main__'\n" + original_content
 
     with open(main_file, 'w') as f:
-                f.write(modified_content)
+        f.write(modified_content)
 
     pyc_file_path = main_file.replace('__main__', '__init__') + 'c'
-    display_file_path = os.path.relpath(main_file, folder_path)          
+    display_file_path = os.path.relpath(main_file, folder_path)
     py_compile.compile(main_file, cfile=pyc_file_path, dfile=display_file_path, doraise=True)
 
     with open(main_file, 'w') as f:
         f.write('import __init__')
 
-def add_icon_to_executable(name, icon_path, folder):
+
+def add_icon_to_executable(name, icon_path, folder, noconfirm):
     name = os.path.abspath(name)
-    cache_path = os.path.expandvars('%LOCALAPPDATA%\\PyCompyle.cache') if os.name == 'nt' else os.path.expanduser('~/.cache/PyCompyle.cache')
+    cache_path = os.path.expandvars(
+        '%LOCALAPPDATA%\\PyCompyle.cache') if os.name == 'nt' else os.path.expanduser('~/.cache/PyCompyle.cache')
     os.makedirs(cache_path, exist_ok=True)
     logging.debug(f'Cache path: {cache_path}')
 
     if not os.path.exists(os.path.join(cache_path, 'resource_hacker')):
         info('Downloading ResourceHacker...')
-        download_resourcehacker(cache_path)
+        if download_resourcehacker(cache_path, noconfirm) is None:
+            logging.info("Skipping icon")
 
     r_hacker_path = os.path.join(cache_path, 'resource_hacker', 'ResourceHacker.exe')
-    if not folder: command = [
-    r_hacker_path,
-    "-open", f"{name}.exe",
-    "-save", f"{name}.exe",
-    "-action", "add",
-    "-res", icon_path,
-    "-mask", "ICONGROUP,MAINICON"
-]
+    if not folder:
+        command = [
+            r_hacker_path,
+            "-open", f"{name}.exe",
+            "-save", f"{name}.exe",
+            "-action", "add",
+            "-res", icon_path,
+            "-mask", "ICONGROUP,MAINICON"
+        ]
     else:
         name = f'{name}\\{os.path.basename(name)}'
         command = [
             r_hacker_path,
             "-open",
-            f'"{name}.exe"', 
+            f'"{name}.exe"',
             "-save",
             f'"{name}.exe"',
-            "-action", 
+            "-action",
             "add",
             "-res",
             icon_path,
@@ -151,7 +168,7 @@ def add_icon_to_executable(name, icon_path, folder):
     subprocess.run(command, stdout=subprocess.DEVNULL)
 
 
-def add_uac(file_path):
+def add_uac(file_path, noconfirm):
     info('Adding UAC to executable...')
     manifest_content = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
@@ -181,7 +198,8 @@ def add_uac(file_path):
 
     if not os.path.exists(r_hacker_path):
         info("Downloading ResourceHacker...")
-        download_resourcehacker(cache_path)
+        if download_resourcehacker(cache_path, noconfirm) is None:
+            logging.info("Skipping UAC...")
     command = [
         r_hacker_path,
         "-open", file_path,
@@ -193,9 +211,11 @@ def add_uac(file_path):
     subprocess.run(command, stdout=subprocess.DEVNULL)
     os.remove(manifest_path)
 
+
 def write_pth(folder_path):
     with open(os.path.join(folder_path, 'python._pth'), 'w') as file:
-            file.write('DLLs\nlib\nlib_c.zip\nlocal\n.')
+        file.write('DLLs\nlib\nlib_c.zip\nlocal\n.')
+
 
 def main(folder_path, args):
     folder_name = os.path.basename(folder_path).replace('.build', '')
@@ -205,7 +225,7 @@ def main(folder_path, args):
     delete_pycache(folder_path)
 
     if args.icon and not args.folder:
-        add_icon_to_executable(os.path.join(folder_path, 'python'), args.icon, False)
+        add_icon_to_executable(os.path.join(folder_path, 'python'), args.icon, False, args.noconfirm)
 
     if not args.disable_compile:
         info("Generating byte-code")
@@ -232,7 +252,7 @@ def main(folder_path, args):
         )
 
     if args.upx_threads not in (0, None, "0"):
-        compress_with_upx(folder_path, args.upx_threads)
+        compress_with_upx(folder_path, args.upx_threads, args.noconfirm)
 
     if not args.folder:
         compress_folder_with_progress(
@@ -276,12 +296,12 @@ def main(folder_path, args):
     if args.icon:
         if os.path.exists(args.icon):
             info(f'Adding icon: {args.icon}')
-            add_icon_to_executable(folder_name, args.icon, args.folder)
+            add_icon_to_executable(folder_name, args.icon, args.folder, args.noconfirm)
         else:
             error(f'Icon file not found: {args.icon}')
 
     if args.uac:
-        add_uac(exe_path)
+        add_uac(exe_path, args.noconfirm)
 
     if args.zip:
         compress_folder_with_progress(folder_path, folder_name)
@@ -293,7 +313,7 @@ def main(folder_path, args):
     if not args.keepfiles and not args.folder:
         info('Cleaning up...')
         shutil.rmtree(folder_path, ignore_errors=True)
-        if os.path.exists(folder_path): # this is redundant
+        if os.path.exists(folder_path):  # this is redundant
             shutil.rmtree(folder_path)
         zip_path = f"{folder_name}.zip"
         if os.path.exists(zip_path):
