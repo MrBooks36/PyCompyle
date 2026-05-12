@@ -25,7 +25,8 @@ def request_download(prompt, noconfirm):
 
 
 def download_resourcehacker(cache_path, noconfirm):
-    if not request_download("ResourceHacker is a requirement for adding icons and uac to executables.\nDo you want to install it", noconfirm):
+    if not request_download("ResourceHacker is a requirement for adding"
+                            "icons and uac to executables.\nDo you want to install it", noconfirm):
         return None
     url = 'https://www.angusj.com/resourcehacker/resource_hacker.zip'
     os.makedirs(cache_path, exist_ok=True)

@@ -11,37 +11,36 @@ plugin = ''
 
 
 def compile_file(file_path, keep=False):
-     try:
+    try:
         from Cython.Build import cythonize
         try:
-         from setuptools import Extension
-         from setuptools.command.build_ext import build_ext
-         from setuptools.dist import Distribution
+            from setuptools import Extension
+            from setuptools.command.build_ext import build_ext
+            from setuptools.dist import Distribution
         except ImportError:
             logging.error("Setuptools is not installed")
             return False
-     except ImportError:
+    except ImportError:
         logging.error("Cython is not installed.")
         return False
 
-     if not os.path.isfile(file_path):
+    if not os.path.isfile(file_path):
         logging.error(f"Invalid Python file: {file_path}")
         return False
 
-     module_name = os.path.splitext(os.path.basename(file_path))[0]
-     file_dir = os.path.dirname(os.path.abspath(file_path))
-     build_dir = r"C:\Windows\Temp\cybuild"
-     os.makedirs(build_dir, exist_ok=True)
-     # create expected MSVC subdirs
-     os.makedirs(os.path.join(build_dir, "Release"), exist_ok=True)
-     os.makedirs(os.path.join(build_dir, "Debug"), exist_ok=True)
+    module_name = os.path.splitext(os.path.basename(file_path))[0]
+    file_dir = os.path.dirname(os.path.abspath(file_path))
+    build_dir = r"C:\Windows\Temp\cybuild"
+    os.makedirs(build_dir, exist_ok=True)
+    # create expected MSVC subdirs
+    os.makedirs(os.path.join(build_dir, "Release"), exist_ok=True)
+    os.makedirs(os.path.join(build_dir, "Debug"), exist_ok=True)
 
-     rel_py = f"{module_name}.py" if file_path.endswith('.py') else f"{module_name}.pyx"
-     temp_py = os.path.join(build_dir, rel_py)
-     shutil.copy2(file_path, temp_py)
+    rel_py = f"{module_name}.py" if file_path.endswith('.py') else f"{module_name}.pyx"
+    temp_py = os.path.join(build_dir, rel_py)
+    shutil.copy2(file_path, temp_py)
 
-
-     try:
+    try:
         extensions = [Extension(module_name, [rel_py])]
 
         # chdir to build_dir so Cython sees relative path
@@ -97,18 +96,20 @@ def compile_file(file_path, keep=False):
         shutil.rmtree(build_dir, ignore_errors=True)
         return True
 
-     except Exception as e:
+    except Exception as e:
         logging.error(f"Failed to compile {file_path} with Cython: {e}")
         return False
-     
+
+
 @functools.cache
 def hash_file(file_path):
     if os.path.exists(file_path):
-     sha256 = hashlib.sha256()
-     with open(file_path, 'rb') as f:
-      while chunk := f.read(65536): # Read in chunks of 64 KB
-       sha256.update(chunk)
-     return sha256.hexdigest() 
+        sha256 = hashlib.sha256()
+        with open(file_path, 'rb') as f:
+            while chunk := f.read(65536):  # Read in chunks of 64 KB
+                sha256.update(chunk)
+        return sha256.hexdigest()
+
 
 def midway():
     logging.info("Starting Cython compilation of .py and .pyx files.")
@@ -130,17 +131,18 @@ def midway():
 
                 file_full_path = os.path.join(dirpath, filename)
                 rel_path_in_lib = os.path.relpath(file_full_path, folder)
-    
+
                 python_lib_file = os.path.join(python_lib_path, rel_path_in_lib)
                 site_packages_file = os.path.join(site_packages_path, rel_path_in_lib)
                 win32_lib_file = os.path.join(win32_lib_path, rel_path_in_lib)
-    
-                files_exist = os.path.exists(python_lib_file) or os.path.exists(site_packages_file) or os.path.exists(win32_lib_file)
+
+                files_exist = os.path.exists(python_lib_file) or os.path.exists(
+                    site_packages_file) or os.path.exists(win32_lib_file)
 
                 files_match_hashes = (
-                plugin.hash_file(file_full_path) == plugin.hash_file(python_lib_file) or
-                plugin.hash_file(file_full_path) == plugin.hash_file(site_packages_file) or
-                plugin.hash_file(file_full_path) == plugin.hash_file(win32_lib_file)
+                    plugin.hash_file(file_full_path) == plugin.hash_file(python_lib_file) or
+                    plugin.hash_file(file_full_path) == plugin.hash_file(site_packages_file) or
+                    plugin.hash_file(file_full_path) == plugin.hash_file(win32_lib_file)
                 )
 
                 if not files_exist and not files_match_hashes:
@@ -151,18 +153,17 @@ def midway():
                     logging.info(f"Successfully compiled {rel_path_in_lib} with Cython.")
 
 
-
 def compile_main(folder_path):
     main_file = os.path.join(folder_path, '__main__.py')
     init_file = os.path.join(folder_path, 'PyCompyle_cython_start.py')
     with open(main_file, 'r') as f:
-            original_content = f.read()
+        original_content = f.read()
 
     modified_content = "__name__ = '__main__'\n" + original_content
 
     with open(init_file, 'w') as f:
-                f.write(modified_content)
-                
+        f.write(modified_content)
+
     compile_file(init_file)
 
     with open(main_file, 'w') as f:

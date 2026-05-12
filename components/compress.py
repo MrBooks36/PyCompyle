@@ -21,13 +21,14 @@ def compress_folder_with_progress(folder_path, output_zip_name, password=None, c
 
     encryption = pyzipper.WZ_AES if password else None
 
+    # We keep the 'text' as the static description
     with tqdm(total=total_size, unit='B', unit_scale=True, desc=text) as pbar, \
         pyzipper.AESZipFile(
-        f"{output_zip_name}.zip",
-        'w',
-        compression=pyzipper.ZIP_DEFLATED,
-        compresslevel=compression_level,
-        encryption=encryption
+            f"{output_zip_name}.zip",
+            'w',
+            compression=pyzipper.ZIP_DEFLATED,
+            compresslevel=compression_level,
+            encryption=encryption
     ) as zipf:
 
         if password:
@@ -37,6 +38,13 @@ def compress_folder_with_progress(folder_path, output_zip_name, password=None, c
             for file in files:
                 file_path = os.path.join(root, file)
                 arcname = os.path.relpath(file_path, folder_path)
+
+                # Truncate and pad the name
+                display_name = file if len(file) <= 25 else f"...{file[-22:]}"
+                padded_name = f"{display_name:<25}"
+
+                pbar.set_postfix_str(f"File: {padded_name}")
+
                 zipf.write(file_path, arcname)
                 pbar.update(os.path.getsize(file_path))
 
@@ -151,13 +159,25 @@ def compress_with_upx(folder_path, threads, noconfirm):
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(compress_file, f): f for f in files_to_compress}
-        with tqdm(total=len(files_to_compress),
-                  desc="INFO: Compressing binary files with UPX", unit="file") as pbar:
+
+        desc_text = "INFO: UPX Compressing"
+
+        with tqdm(total=len(files_to_compress), desc=desc_text, unit="file") as pbar:
             for future in as_completed(futures):
+                file_path = futures[future]
+                filename = os.path.basename(file_path)
+
                 try:
                     future.result()
                 except Exception as e:
-                    logging.error(f"Error compressing {futures[future]}: {e}")
+                    logging.error(f"Error compressing {file_path}: {e}")
+
+                # Truncate and pad to keep the bar from bouncing
+                display_name = filename if len(filename) <= 25 else f"...{filename[-22:]}"
+                padded_name = f"{display_name:<25}"
+
+                # Update the right side of the bar
+                pbar.set_postfix_str(f"Last: {padded_name}")
                 pbar.update(1)
 
     # Remove stale cache files

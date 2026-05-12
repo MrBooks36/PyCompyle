@@ -81,10 +81,9 @@ def main():
                         help='Skip confirmation for wrapping the exe', default=False)
     parser.add_argument('--folder', '-f', action='store_true',
                         help='Build to a folder instead of a onefile exe', default=False)
-    parser.add_argument('--zip', '-zip', action='store_true',
-                        help='Build to a zip instead of a onefile exe. (Zipped version of --folder)', default=False)
-    parser.add_argument('--bat', '-bat', action='store_true',
-                        help='Use a .bat file for starting the built script instead of a exe for faster start times (Automatically implies --folder)', default=False)
+    parser.add_argument('--zip', '-zip', action='store_true', help='Build to a zip instead of a onefile exe.', default=False)
+    parser.add_argument('--bat', '-bat', action='store_true', default=False,
+                        help='Use a .bat for starting the built script for faster start times (Automatically implies --folder)')
     parser.add_argument('--icon', '-icon', help='Icon for the created EXE', default=None)
     parser.add_argument('--uac', '-uac', action='store_true', help='Add UAC to the EXE', default=False)
     parser.add_argument('--package', '-p', action='append', help='Include a package that might have been missed.', default=[])
@@ -92,8 +91,8 @@ def main():
                         help='Load a plugin by path or name for built-in plugins', default=[])
     parser.add_argument('--midwaycommand', '-m',
                         help='Run a CMD command or batch script before building the EXE', default=None)
-    parser.add_argument(
-        '--bootloader', help='Use a custom bootloader instead of the default ones (--uac and --windowed will not work as it must be built into the custom bootloader)', default=None)
+    parser.add_argument('--bootloader', default=None,
+                        help='Use a custom bootloader (--uac and --windowed must be built into the custom bootloader)')
     parser.add_argument('--verbose', '-v', action='store_true', help='Enable verbose output.', default=False)
     parser.add_argument('--windowed', '-w', action='store_true', help='Disable console', default=False)
     parser.add_argument('--keepfiles', '-k', action='store_true', help='Keep the build files', default=False)
@@ -103,28 +102,26 @@ def main():
                         help='Add arguments to the startup of the python interpreter', default=[])
     parser.add_argument('--include-script', action='append', help='Add a file located in PYTHONPATH/Scripts', default=[])
     parser.add_argument('--copy-include', action='store_true', help='Copy PYTHONPATH/include', default=False)
-    parser.add_argument(
-        '--upx-threads', help='How many threads to use when compressing with UPX. (More=faster but more straining. Less=slower but less straining. 0 will disable it)', default='default')
-    parser.add_argument('--disable-bootloader', action='store_true',
-                        help='Disable creating a bootloader executable (Automatically implies --folder)', default=False)
-    parser.add_argument('--disable-python-environment', action='store_true',
-                        help='Disable copying the python environment (excluding DLLs and Lib folder, automatically implies --folder)', default=False)
-    parser.add_argument('--disable-compile', action='store_true',
-                        help='Disable compiling lib to .pyc files (useful for debugging)', default=False)
-    parser.add_argument('--disable-lib-compressing', action='store_true',
-                        help='Disable compressing top-level .pyc and .py files in lib folder', default=False)
+    parser.add_argument('--upx-threads', default='default',
+                        help='How many threads to use when compressing with UPX. 0 will disable it.')
+    parser.add_argument('--disable-bootloader', action='store_true', default=False,
+                        help='Disable creating a bootloader executable (Automatically implies --folder)')
+    parser.add_argument('--disable-python-environment', action='store_true', default=False,
+                        help='Disable copying the python environment (Automatically implies --folder)')
+    parser.add_argument('--disable-compile', action='store_true', help='Disable compiling lib to .pyc files', default=False)
+    parser.add_argument('--disable-lib-compressing', action='store_true', help='Disable compressing .pyc files', default=False)
     parser.add_argument('--disable-password', action='store_true',
                         help='Disable the password on the onefile EXE', default=False)
-    parser.add_argument('--disable-dll', action='store_true',
-                        help="Disable Copying the DLLs folder (Why did I add this the thing will break if you don't have them so only use this if you have some sort of handling system for this that will only copy over the nedded dlls. Wow that was long)", default=False)
-    parser.add_argument('--force-refresh', action='store_true',
-                        help='Remove the PyCompyle.cache folder and reinstall components', default=False)
-    parser.add_argument('--debug', action='store_true',
-                        help='Enables all debugging tools: --verbose --keepfiles --folder and disables --windowed and --zip', default=False)
+    parser.add_argument('--disable-dll', action='store_true', default=False,
+                        help="Disable Copying the DLLs folder (Only use if you have a custom handling system for dependencies)")
+    parser.add_argument('--force-refresh', action='store_true', help='Remove the PyCompyle.cache and reinstall', default=False)
+    parser.add_argument('--debug', action='store_true', default=False,
+                        help='Enables: --verbose --keepfiles --folder. Disables: --windowed --zip')
+
     args = parser.parse_args()
     if args.debug:
         args.verbose = True
-    if platform.system() == "Linux" and args.disable_lib_compressing == False:
+    if platform.system() == "Linux" and args.disable_lib_compressing is False:
         args.package.append('zlib')  # needed for lib_c.zip
 
     setup_logging(args.verbose)

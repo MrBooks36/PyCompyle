@@ -84,7 +84,7 @@ def copy_tk(folder_path):
                     except IOError as e:
                         logging.error(f"Error copying {item_path} to {destination_path}: {e}")
 
-        info(f'Copied tcl directories')
+        info('Copied tcl directories')
 
     except Exception as e:
         logging.error(f"An unexpected error occurred in copying tcl: {e}")
@@ -131,7 +131,8 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, disabl
                 local_folder = os.path.join(source_dir, module_name)
                 if os.path.isdir(local_folder):
                     os.makedirs(os.path.join(folder_path, "local"), exist_ok=True)
-                    # when lib_c is used for a local import e.g. ./components the python interpreter it doesn't find it for some reason
+                    # when lib_c is used for a local import e.g. ./components
+                    # the python interpreter it doesn't find it for some reason
                     target_path = os.path.join(folder_path, "local" if not disable_lib_compressing else "lib", module_name)
                     try:
                         shutil.copytree(local_folder, target_path)

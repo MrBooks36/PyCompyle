@@ -39,7 +39,8 @@ def load_linked_imports(force_refresh=False):
         download.download_and_update_linked_imports(cache_file, timestamp_file)
 
     # type: ignore
-    if os.path.exists(local_json) and os.path.exists(os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "localjson")):
+    if os.path.exists(local_json) and os.path.exists(
+            os.path.join(os.path.dirname(sys.modules["__main__"].__file__), "localjson")):
         try:
             with open(local_json, "r", encoding="utf-8") as f:
                 logging.info("Using local linked_imports.json")

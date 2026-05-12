@@ -29,7 +29,7 @@ def delete_pycache(start_dir):
 
 
 def read_gitignore(file_path):
-    logging.info(f"Reading .gitignore")
+    logging.info("Reading .gitignore")
     patterns = []
     with open(file_path, 'r') as f:
         for line in f:
@@ -57,7 +57,7 @@ def delete_matching_paths(root_path, patterns):
 
 
 def build(suffix, no_zip=False, build_linux_only=False):
-    logging.info(f"Compiling EXEs...")
+    logging.info("Compiling EXEs...")
     if suffix == "linux" and platform.system().lower() != "linux" or build_linux_only:
         subprocess.run(["wsl.exe", "--", "bash", "-lc", "python3 execompile.py"], check=True)
     else:
