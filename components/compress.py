@@ -12,7 +12,7 @@ from logging import info
 from components.download import install_upx
 
 
-def compress_folder_with_progress(folder_path, output_zip_name, password=None, compression_level=6, text='INFO: Zipping'):
+def compress_folder_with_progress(folder_path, output_zip_path, password=None, compression_level=6, text='INFO: Zipping'):
     total_size = sum(
         os.path.getsize(os.path.join(root, file))
         for root, _, files in os.walk(folder_path)
@@ -21,10 +21,9 @@ def compress_folder_with_progress(folder_path, output_zip_name, password=None, c
 
     encryption = pyzipper.WZ_AES if password else None
 
-    # We keep the 'text' as the static description
     with tqdm(total=total_size, unit='B', unit_scale=True, desc=text) as pbar, \
         pyzipper.AESZipFile(
-            f"{output_zip_name}.zip",
+            f"{output_zip_path}.zip",
             'w',
             compression=pyzipper.ZIP_DEFLATED,
             compresslevel=compression_level,
@@ -47,6 +46,7 @@ def compress_folder_with_progress(folder_path, output_zip_name, password=None, c
 
                 zipf.write(file_path, arcname)
                 pbar.update(os.path.getsize(file_path))
+
 
 
 def compress_top_level_pyc(lib_folder, output_name="lib_c"):
@@ -130,7 +130,7 @@ def compress_with_upx(folder_path, threads, noconfirm):
     for root, _, files in os.walk(folder_path):
         for file in files:
             if any(file.lower().endswith(ext) for ext in extensions or os.access(file, os.X_OK)):
-                if file.lower().startswith(("qwindows", "vcruntime")):
+                if file.lower().startswith(("qwindows")):
                     continue
                 files_to_compress.append(os.path.join(root, file))
 
