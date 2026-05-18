@@ -1,17 +1,24 @@
-from components.plugins import load_plugin, apply_monkey_patches, run_startup_code, run_halfway_code
-from components import makexe, copylogic
-from components.imports import importcheck
-import os
-import sys
-import platform
-import subprocess
-import shutil
-import logging
 import argparse
 from getpass import getpass
+import logging
 from logging import info
+import os
+import platform
+import shutil
+import subprocess
+import sys
 
-sys.path.append(os.path.dirname(__file__))  # This is here so it works properly when it is in site-packages
+# Ensure local imports work properly when installed in site-packages
+sys.path.append(os.path.dirname(__file__))
+
+from components import copylogic, makexe  # noqa: E402
+from components.imports import importcheck  # noqa: E402
+from components.plugins import (  # noqa: E402
+    apply_monkey_patches,
+    load_plugin,
+    run_halfway_code,
+    run_startup_code,
+)
 
 
 def setup_logging(verbose=False):

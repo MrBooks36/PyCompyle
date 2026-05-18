@@ -165,7 +165,7 @@ def add_icon_to_executable(name, icon_path, folder, noconfirm):
             "-mask",
             "ICONGROUP,MAINICON"
         ]
-    subprocess.run(command, stdout=subprocess.DEVNULL)
+    subprocess.run(command)
 
 
 def add_uac(file_path, noconfirm):
@@ -208,7 +208,7 @@ def add_uac(file_path, noconfirm):
         "-res", manifest_path,
         "-mask", "MANIFEST,1,"
     ]
-    subprocess.run(command, stdout=subprocess.DEVNULL)
+    subprocess.run(command)
     os.remove(manifest_path)
 
 
@@ -219,7 +219,7 @@ def write_pth(folder_path):
 
 def main(folder_path, args):
     folder_name = os.path.basename(folder_path).replace('.build', '')
-    exe_path = os.path.join(folder_path, f'{folder_name}.exe' if args.folder else f'{folder_name}.exe')
+    exe_path = os.path.join(folder_path, f'{folder_name}.exe') if args.folder else f'{folder_name}.exe'
 
     info('Removing __pycache__ directories...')
     delete_pycache(folder_path)

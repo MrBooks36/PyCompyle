@@ -63,11 +63,13 @@ def build(suffix, no_zip=False, build_linux_only=False):
     else:
         subprocess.run(['python', os.path.join(main_folder, 'execompile.py')])
 
+    logging.info("Copying files to build folder")
     build_folder = os.path.join(main_folder, 'build' + suffix)
     if os.path.exists(build_folder):
         shutil.rmtree(build_folder, onexc=remove_readonly)
 
-    shutil.copytree(main_folder, build_folder)
+    shutil.copytree(main_folder, build_folder, ignore=shutil.ignore_patterns('bootloader', '.github',
+                    '.git', '.gitignore', 'build.py', 'execompile.py', 'readme.md', 'installer.py'))
 
     logging.info("Cleaning build folder...")
     gitignore_path = os.path.join(main_folder, '.gitignore')
@@ -76,17 +78,6 @@ def build(suffix, no_zip=False, build_linux_only=False):
         delete_matching_paths(build_folder, patterns)
     else:
         logging.warning(".gitignore not found, skipping pattern-based cleanup.")
-
-    logging.info("Removing extra files...")
-    items = ['.github', '.git', '.gitignore', 'build.py', 'execompile.py', 'readme.md', 'bootloader', 'installer.py']
-
-    for item in items:
-        target = os.path.join(build_folder, item)
-        if os.path.exists(target):
-            if os.path.isdir(target):
-                shutil.rmtree(target, onexc=remove_readonly)
-            else:
-                os.remove(target)
 
     logging.info('Build cleanup completed.')
     if not no_zip:
@@ -102,7 +93,7 @@ def main():
     parser.add_argument('-ll', '--build-linux-only', action='store_true', help='Create build for Linux only (requires WSL)')
     parser.add_argument('--no-zip', action='store_true', help='Do not create zip archives of the builds')
     parser.add_argument("--test", action='store_true',
-                        help="Automatically load the build code into site-packages (Windows only)")
+                        help="Automatically load the built code into site-packages (Windows only)")
     args = parser.parse_args()
     if args.test:
         args.no_zip = True
