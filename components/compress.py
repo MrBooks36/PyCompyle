@@ -23,7 +23,7 @@ def compress_folder_with_progress(folder_path, output_zip_path, password=None, c
 
     with tqdm(total=total_size, unit='B', unit_scale=True, desc=text) as pbar, \
         pyzipper.AESZipFile(
-            f"{output_zip_path}.zip",
+            output_zip_path,
             'w',
             compression=pyzipper.ZIP_DEFLATED,
             compresslevel=compression_level,
@@ -81,7 +81,7 @@ def compress_top_level_pyc(lib_folder, output_name="lib_c"):
             if not os.listdir(dir_path):
                 shutil.rmtree(dir_path)
 
-    compress_folder_with_progress(lib_c_path, output_name, password=None, text='INFO: Compressing top-level python files')
+    compress_folder_with_progress(lib_c_path, f"{output_name}.zip", password=None, text='INFO: Compressing top-level python files')
 
     shutil.rmtree(lib_c_path)
 
