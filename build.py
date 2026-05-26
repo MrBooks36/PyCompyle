@@ -56,12 +56,13 @@ def delete_matching_paths(root_path, patterns):
                     pass
 
 
-def build(suffix, no_zip=False, build_linux_only=False):
+def build(suffix, no_zip=False, build_linux_only=False, noexe=False):
     logging.info("Compiling EXEs...")
-    if suffix == "linux" and platform.system().lower() != "linux" or build_linux_only:
-        subprocess.run(["wsl.exe", "--", "bash", "-lc", "python3 execompile.py"], check=True)
-    else:
-        subprocess.run(['python', os.path.join(main_folder, 'execompile.py')])
+    if not noexe:
+        if suffix == "linux" and platform.system().lower() != "linux" or build_linux_only:
+            subprocess.run(["wsl.exe", "--", "bash", "-lc", "python3 execompile.py"], check=True)
+        else:
+            subprocess.run(['python', os.path.join(main_folder, 'execompile.py')])
 
     logging.info("Copying files to build folder")
     build_folder = os.path.join(main_folder, 'build' + suffix)
@@ -94,6 +95,7 @@ def main():
     parser.add_argument('--no-zip', action='store_true', help='Do not create zip archives of the builds')
     parser.add_argument("--test", action='store_true',
                         help="Automatically load the built code into site-packages (Windows only)")
+    parser.add_argument("--noexe", help="Skip exe compiling", action='store_true')
     args = parser.parse_args()
     if args.test:
         args.no_zip = True
@@ -103,7 +105,8 @@ def main():
     logging.info("Starting build process...")
     delete_pycache(main_folder)
 
-    build(suffix="win" if args.include_linux else "", no_zip=args.no_zip, build_linux_only=args.build_linux_only)
+    build(suffix="win" if args.include_linux else "", no_zip=args.no_zip,
+          build_linux_only=args.build_linux_only, noexe=args.noexe)
 
     if args.include_linux and not args.build_linux_only:
         logging.info("Starting Linux build process...")

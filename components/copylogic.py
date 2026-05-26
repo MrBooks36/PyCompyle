@@ -124,7 +124,7 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, disabl
                     exec(body, globals(), locals())
                     skip.append(import_name)
                 if not continue_after:
-                    continue
+                    break
         else:
             spec = importlib.util.find_spec(module_name)
             if spec is None or spec.origin is None or 'built-in' in spec.origin or 'frozen' in spec.origin:

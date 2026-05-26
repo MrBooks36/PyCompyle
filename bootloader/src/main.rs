@@ -1,68 +1,57 @@
 #![cfg_attr(all(windows, not(feature = "console")), windows_subsystem = "windows")]
-use anyhow::{Result, anyhow};
+use anyhow::{anyhow, Result};
 use std::env;
 use std::fs::File;
 use std::fs::{self};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::process::id;
+use std::process::{Command, ExitStatus};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+#[cfg(all(target_os = "windows", not(feature = "console")))]
+use std::os::windows::process::CommandExt;
 
 struct Options {
     pub exe: PathBuf,
     pub debug: bool,
 }
 
-fn generate_unique_output_dir() -> Result<String> {
-    let base_path = env::var("TEMP").unwrap_or_else(|_| {
-        #[cfg(target_os = "windows")]
-        {
-            r"C:\Windows\TEMP".to_string()
-        }
-        #[cfg(target_os = "linux")]
-        {
-            "/tmp".to_string()
-        }
-        #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-        {
-            return Err(anyhow!("unsupported platform"));
-        }
-    });
-    let now = SystemTime::now();
-    let since_epoch = now.duration_since(UNIX_EPOCH).unwrap();
-    let timestamp = since_epoch.as_secs();
-
+fn generate_unique_output_dir() -> Result<PathBuf> {
+    let base_path = env::temp_dir();
+    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
     let pid = id();
 
-    Ok(format!("{}\\mrb36.{}.{}", base_path, timestamp, pid))
+    Ok(base_path.join(format!("mrb36.{}.{}", timestamp, pid)))
 }
 
 fn extract_embedded_zip(output_dir: &Path, options: &Options) -> Result<()> {
-    let password: &str = "PyCompyle";
-    let file = File::open(options.exe.clone())?;
+    const PASSWORD: &[u8] = b"PyCompyle";
+
+    let file = File::open(&options.exe)?;
     let mut archive = zip::ZipArchive::new(file)?;
 
     if options.debug {
         println!("Extracting embedded zip");
     }
 
-    let names: Vec<String> = archive.file_names().map(|s| s.to_owned()).collect();
+    for i in 0..archive.len() {
+        let mut entry = archive.by_index_decrypt(i, PASSWORD)?;
 
-    for file_name in names {
-        let mut entry = archive.by_name_decrypt(&file_name, password.as_bytes())?;
-        let outpath = output_dir.join(entry.name());
+        let entry_name = entry
+            .enclosed_name()
+            .ok_or_else(|| anyhow!("Malicious zip path detected"))?;
+        let outpath = output_dir.join(entry_name);
 
         if entry.is_dir() {
             fs::create_dir_all(&outpath)?;
         } else {
-            if let Some(parent) = outpath.parent() {
-                fs::create_dir_all(parent)?;
+            if let Some(p) = outpath.parent() {
+                fs::create_dir_all(p)?;
             }
             let mut outfile = File::create(&outpath)?;
             std::io::copy(&mut entry, &mut outfile)?;
         }
     }
-
     Ok(())
 }
 
@@ -70,7 +59,7 @@ fn add_sys_mod(script_path: &Path, options: &Options) -> Result<()> {
     let exe = options.exe.to_string_lossy();
 
     let new_text = format!(
-        "import sys\nsys.argv[0] = r'{}'\nsys.executable = r'{}'\n",
+        "import sys\nsys.argv = r'{}'\nsys.executable = r'{}'\n",
         exe, exe
     );
 
@@ -88,7 +77,7 @@ fn add_sys_mod(script_path: &Path, options: &Options) -> Result<()> {
     Ok(())
 }
 
-fn run_extracted_executable(output_dir: &Path, options: &Options) -> Result<()> {
+fn run_extracted_executable(output_dir: &Path, options: &Options) -> Result<ExitStatus> {
     #[cfg(target_os = "windows")]
     let python_executable = output_dir.join("python.exe");
     #[cfg(target_os = "linux")]
@@ -96,7 +85,7 @@ fn run_extracted_executable(output_dir: &Path, options: &Options) -> Result<()> 
 
     let script_path = output_dir.join("__main__.py");
 
-    if !Path::new(&script_path).exists() {
+    if !script_path.exists() {
         eprintln!("Error: __main__.py missing");
         return Err(anyhow!("Error: __main__.py missing"));
     }
@@ -104,10 +93,11 @@ fn run_extracted_executable(output_dir: &Path, options: &Options) -> Result<()> 
     add_sys_mod(&script_path, options)?;
 
     let mut pyargs = vec!["-B".to_string()];
-    let pyargs_file = format!("{:?}/pyargs", output_dir);
+
+    let pyargs_file = output_dir.join("pyargs");
 
     // If pyargs file exists, read arguments from it
-    if Path::new(&pyargs_file).exists() {
+    if pyargs_file.exists() {
         pyargs.clear();
         if let Ok(contents) = fs::read_to_string(&pyargs_file) {
             for line in contents.lines() {
@@ -136,12 +126,16 @@ fn run_extracted_executable(output_dir: &Path, options: &Options) -> Result<()> 
     let mut cmd = Command::new(python_executable);
     cmd.args(&pyargs).arg(script_path).args(&additional_args);
 
+    #[cfg(all(target_os = "windows", not(feature = "console")))]
+    // 0x08000000 is the Win32 constant for CREATE_NO_WINDOW
+    cmd.creation_flags(0x08000000);
+
     match cmd.status() {
         Ok(status) => {
             if options.debug {
                 println!("Python exited with: {}", status);
             }
-            Ok(())
+            Ok(status)
         }
         Err(e) => {
             if options.debug {
@@ -170,13 +164,13 @@ fn main() -> Result<()> {
     }
 
     let output_dir = generate_unique_output_dir()?;
-    let output_dir = Path::new(&output_dir);
 
-    match extract_embedded_zip(output_dir, &options) {
+    // Track the final exit status of Python
+    let exit_status = match extract_embedded_zip(&output_dir, &options) {
         Ok(_) => {
-            run_extracted_executable(output_dir, &options)?;
-
-            cleanup_directory(output_dir);
+            let status = run_extracted_executable(&output_dir, &options)?;
+            cleanup_directory(&output_dir);
+            status // Return the status
         }
         Err(e) => {
             let pth = options
@@ -185,12 +179,15 @@ fn main() -> Result<()> {
                 .ok_or_else(|| anyhow!("asd"))?
                 .join("__main__.py");
             if pth.exists() {
-                run_extracted_executable(&pth.parent().unwrap(), &options)?;
+                run_extracted_executable(pth.parent().unwrap(), &options)? // Return the status
             } else {
                 return Err(anyhow!("Error: {e}"));
             }
         }
-    }
+    };
 
-    Ok(())
+    // Extract code integer or fallback to 1 if terminated by a signal
+    let exit_code = exit_status.code().unwrap_or(1);
+
+    std::process::exit(exit_code);
 }

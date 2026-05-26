@@ -10,8 +10,9 @@ codegen-units = 1
 panic = "abort"
 strip = true
 
+
 [dependencies]
-zip = { version = "7.0.0", features = ["aes-crypto"] }
+zip = { version = "7.0.0", default-features = false, features = ["aes-crypto", "deflate"] }
 anyhow = "1.0.100"
 
 [features]

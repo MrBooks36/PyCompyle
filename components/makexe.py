@@ -55,6 +55,7 @@ def create_executable(output_file, bootloader, no_console, zip_path=None):
 
     if not bootloader:
         bootloader = bootloader_map[(no_console, platform.system() == "Linux")]
+        logging.debug(f"Using bootloader {bootloader}")
         bootloader = os.path.join(exe_folder, bootloader)
     else:
         info(f'Using custom bootloader: "{bootloader}"')
