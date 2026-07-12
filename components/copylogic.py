@@ -108,6 +108,44 @@ def copy_include(folder_path):
     info('Copied include folder to build')
 
 
+def copy_pyd(origin_path, folder_path):
+    try:
+        dlls_folder = os.path.join(folder_path, "DLLs")
+        os.makedirs(dlls_folder, exist_ok=True)
+        shutil.copy2(origin_path, dlls_folder)
+        if logging.DEBUG >= logging.root.level:
+            logging.debug(f"Copied PYD from {origin_path} to {dlls_folder}")
+        else:
+            info(f"Copied package PYD: {os.path.basename(origin_path)}")
+    except Exception as e:
+        logging.error(f"Error copying module PYD {origin_path}: {e}")
+
+
+def copy_file(origin_path, lib_path):
+    try:
+        shutil.copy2(origin_path, os.path.join(lib_path, os.path.basename(origin_path)))
+        if logging.DEBUG >= logging.root.level:
+            logging.debug(f"Copied module file from {origin_path} to {lib_path}")
+        info(f"Copied package file: {os.path.basename(origin_path)}")
+    except Exception as e:
+        logging.error(f"Error copying module file {origin_path}: {e}")
+
+
+def copy_folder(origin_path, lib_path):
+    package_folder = os.path.dirname(origin_path)
+    target_path = os.path.join(lib_path, os.path.basename(package_folder))
+    try:
+        if os.path.exists(target_path):
+            shutil.rmtree(target_path)
+        shutil.copytree(package_folder, target_path)
+        if logging.DEBUG >= logging.root.level:
+            logging.debug(f"Copied package from {package_folder} to {target_path}")
+        else:
+            info(f"Copied package folder: {os.path.basename(package_folder)}")
+    except Exception as e:
+        logging.error(f"Error copying package folder {package_folder}: {e}")
+
+
 def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, disable_lib_compressing):
     special_cases = list(get_special_cases())
 
@@ -148,38 +186,11 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, disabl
 
             origin_path = spec.origin
             if origin_path.endswith('__init__.py') or origin_path.endswith('__init__.pyc'):
-                package_folder = os.path.dirname(origin_path)
-                target_path = os.path.join(lib_path, os.path.basename(package_folder))
-                try:
-                    if os.path.exists(target_path):
-                        shutil.rmtree(target_path)
-                    shutil.copytree(package_folder, target_path)
-                    if logging.DEBUG >= logging.root.level:
-                        logging.debug(f"Copied package from {package_folder} to {target_path}")
-                    else:
-                        info(f"Copied package folder: {os.path.basename(package_folder)}")
-                except Exception as e:
-                    logging.error(f"Error copying package folder {package_folder}: {e}")
+                copy_folder(origin_path, lib_path)
+            elif origin_path.endswith('.pyd'):
+                copy_pyd(origin_path, folder_path)
             else:
-                if origin_path.endswith('.pyd'):
-                    try:
-                        shutil.copy2(origin_path, os.path.join(os.path.join(os.path.dirname(lib_path), 'DLLs'),
-                                                               os.path.basename(origin_path)))
-                        if logging.DEBUG >= logging.root.level:
-                            logging.debug(
-                                f"Copied PYD from {origin_path} to {os.path.join(os.path.dirname(lib_path), 'DLLs')}")
-                        else:
-                            info(f"Copied package PYD: {os.path.basename(origin_path)}")
-                    except Exception as e:
-                        logging.error(f"Error copying module PYD {origin_path}: {e}")
-                else:
-                    try:
-                        shutil.copy2(origin_path, os.path.join(lib_path, os.path.basename(origin_path)))
-                        if logging.DEBUG >= logging.root.level:
-                            logging.debug(f"Copied module file from {origin_path} to {lib_path}")
-                        info(f"Copied package file: {os.path.basename(origin_path)}")
-                    except Exception as e:
-                        logging.error(f"Error copying module file {origin_path}: {e}")
+                copy_file(origin_path, lib_path)
 
         if module_name == "_tkinter":
             copy_tk(folder_path)
