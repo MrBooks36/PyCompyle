@@ -1,5 +1,5 @@
 #![cfg_attr(all(windows, not(feature = "console")), windows_subsystem = "windows")]
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use std::env;
 use std::fs::File;
 use std::fs::{self};
@@ -59,7 +59,7 @@ fn add_sys_mod(script_path: &Path, options: &Options) -> Result<()> {
     let exe = options.exe.to_string_lossy();
 
     let new_text = format!(
-        "import sys\nsys.argv = r'{}'\nsys.executable = r'{}'\n",
+        "import sys\nsys.argv[0] = r'{}'\nsys.executable = r'{}'\n",
         exe, exe
     );
 
