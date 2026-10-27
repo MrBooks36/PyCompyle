@@ -164,7 +164,10 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, disabl
                 if not continue_after:
                     break
         else:
-            spec = importlib.util.find_spec(module_name)
+            try:
+                spec = importlib.util.find_spec(module_name)
+            except ValueError:
+                pass
             if spec is None or spec.origin is None or 'built-in' in spec.origin or 'frozen' in spec.origin:
                 local_folder = os.path.join(source_dir, module_name)
                 if os.path.isdir(local_folder):
