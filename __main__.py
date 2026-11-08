@@ -180,11 +180,11 @@ def main():
         except Exception as e:
             logging.error(f"Failed to copy '{path}': {e}")
 
-    cleaned_modules = importcheck.process_imports(source_file_path, args.package, args.keepfiles, args.force_refresh)
+    found_imports = getimports.recurse_import_check(source_file_path, additional_imports=args.package, keepfiles=args.keepfiles)
     lib_path = os.path.join(folder_path, 'lib')
     os.makedirs(lib_path, exist_ok=True)
     source_dir = os.path.dirname(source_file_path)
-    copylogic.copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, args.disable_lib_compressing)
+    copylogic.copy_dependencies(found_imports, lib_path, folder_path, source_dir, args.disable_lib_compressing)
 
     if args.include_script:
         copylogic.copy_scripts(args.include_script, folder_path)

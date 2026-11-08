@@ -146,49 +146,87 @@ def copy_folder(origin_path, lib_path):
         logging.error(f"Error copying package folder {package_folder}: {e}")
 
 
-def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, disable_lib_compressing):
+
+def copy_dependencies(found_modules, lib_path, folder_path, source_dir, disable_lib_compressing):
     special_cases = list(get_special_cases())
 
-    for module_name in cleaned_modules:
-        if module_name == '__main__':
+    executed_plugins = set()
+
+    for module_name in found_modules:
+        if module_name == "__main__":
             continue
 
-        ran_plugin = False
-        for import_name, body, top, continue_after in special_cases:
-            skip = []
-            if module_name == import_name and import_name not in skip:
-                ran_plugin = True
-                if top:
-                    exec(body, globals(), locals())
-                    skip.append(import_name)
+        matching_plugins = [
+            (import_name, body, top, continue_after)
+            for import_name, body, top, continue_after in special_cases
+            if import_name == module_name
+        ]
+
+        # Execute top-placement plugins.
+        for import_name, body, top, continue_after in matching_plugins:
+            if top and import_name not in executed_plugins:
+                exec(body, {**globals(), "folder_path": folder_path})
+                executed_plugins.add(import_name)
+
                 if not continue_after:
                     break
-        else:
+
+        # If a top plugin explicitly stops processing, skip normal handling.
+        skip_dependency_copy = any(
+            top and import_name in executed_plugins and not continue_after
+            for import_name, body, top, continue_after in matching_plugins
+        )
+
+        # Copy the dependency unless a matching plugin handles it exclusively.
+        if not skip_dependency_copy:
             try:
                 spec = importlib.util.find_spec(module_name)
-            except ValueError:
-                pass
-            if spec is None or spec.origin is None or 'built-in' in spec.origin or 'frozen' in spec.origin:
+            except (ImportError, ValueError, ModuleNotFoundError):
+                spec = None
+
+            if (
+                spec is None
+                or spec.origin is None
+                or 'built-in' in spec.origin
+                or 'frozen' in spec.origin
+            ):
                 local_folder = os.path.join(source_dir, module_name)
+
                 if os.path.isdir(local_folder):
-                    os.makedirs(os.path.join(folder_path, "local"), exist_ok=True)
-                    # when lib_c is used for a local import e.g. ./components
-                    # the python interpreter it doesn't find it for some reason
-                    target_path = os.path.join(folder_path, "local" if not disable_lib_compressing else "lib", module_name)
+                    target_base = "lib" if disable_lib_compressing else "local"
+                    target_path = os.path.join(
+                        folder_path, target_base, module_name
+                    )
+
+                    os.makedirs(os.path.dirname(target_path), exist_ok=True)
+
                     try:
                         shutil.copytree(local_folder, target_path)
+
                         if logging.DEBUG >= logging.root.level:
-                            logging.debug(f"Copied local folder from {local_folder} to {target_path}")
+                            logging.debug(
+                                f"Copied local folder from {local_folder} "
+                                f"to {target_path}"
+                            )
                         else:
-                            info(f"Copied local folder module (no __init__.py): {module_name}")
+                            info(
+                                f"Copied local folder module "
+                                f"(no __init__.py): {module_name}"
+                            )
                     except Exception as e:
-                        logging.error(f"Error copying local folder {local_folder}: {e}")
+                        logging.error(
+                            f"Error copying local folder {local_folder}: {e}"
+                        )
                 else:
-                    logging.debug(f"No local folder found for module: {module_name}")
+                    logging.debug(
+                        f"No local folder found for module: {module_name}"
+                    )
+
                 continue
 
             origin_path = spec.origin
-            if origin_path.endswith('__init__.py') or origin_path.endswith('__init__.pyc'):
+
+            if origin_path.endswith(('__init__.py', '__init__.pyc')):
                 copy_folder(origin_path, lib_path)
             elif origin_path.endswith('.pyd'):
                 copy_pyd(origin_path, folder_path)
@@ -198,10 +236,11 @@ def copy_dependencies(cleaned_modules, lib_path, folder_path, source_dir, disabl
         if module_name == "_tkinter":
             copy_tk(folder_path)
 
-        # execute plugin code here if it had bottom placement
-        if ran_plugin:
-            skip = []
-            for import_name, body, top, continue_after in special_cases:
-                if module_name == import_name and not top and import_name not in skip:
-                    exec(body, globals(), locals())
-                    skip.append(import_name)
+        # Execute bottom-placement plugins.
+        for import_name, body, top, continue_after in matching_plugins:
+            if not top and import_name not in executed_plugins:
+                exec(body, {**globals(), "folder_path": folder_path})
+                executed_plugins.add(import_name)
+
+                if not continue_after:
+                    break
