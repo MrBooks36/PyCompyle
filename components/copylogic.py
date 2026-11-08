@@ -5,7 +5,7 @@ import shutil
 import importlib.util
 import platform
 import configparser
-from components.plugins import get_special_cases
+from .plugins import get_special_cases
 from logging import info
 
 
@@ -144,7 +144,6 @@ def copy_folder(origin_path, lib_path):
             info(f"Copied package folder: {os.path.basename(package_folder)}")
     except Exception as e:
         logging.error(f"Error copying package folder {package_folder}: {e}")
-
 
 
 def copy_dependencies(found_modules, lib_path, folder_path, source_dir, disable_lib_compressing):

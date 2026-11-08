@@ -7,7 +7,7 @@ import importlib.machinery
 import importlib.util
 from logging import info
 
-plugins = []
+plugins: list[str] = []
 
 
 def load_plugin(plugin_path):

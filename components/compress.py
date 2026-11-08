@@ -9,7 +9,7 @@ import stat
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from logging import info
-from components.download import install_upx
+from .download import install_upx
 
 
 def compress_folder_with_progress(folder_path, output_zip_path, password=None, compression_level=6, text='INFO: Zipping'):

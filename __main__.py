@@ -8,11 +8,8 @@ import shutil
 import subprocess
 import sys
 
-# Ensure local imports work properly when installed in site-packages
-sys.path.insert(0, os.path.dirname(__file__))
-
-from components import copylogic, makexe, getimports  # noqa: E402
-from components.plugins import (  # noqa: E402
+from .components import copylogic, makexe, getimports
+from .components.plugins import (
     apply_monkey_patches,
     load_plugin,
     run_halfway_code,

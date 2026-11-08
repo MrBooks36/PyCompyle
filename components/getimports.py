@@ -4,9 +4,9 @@ import os
 import ast
 import logging
 
-found_imports = set()
-pending_imports = set()
-checked_imports = set()
+found_imports: set[str] = set()
+pending_imports: set[str] = set()
+checked_imports: set[str] = set()
 
 
 def add_required_imports(additional_imports=None):
@@ -137,6 +137,12 @@ def recurse_import_check(file_path, additional_imports=None, keepfiles=False):
     analyze_file(file_path)
     found_imports = run_import_checker(pending_imports, os.path.dirname(file_path), keepfiles)
 
-    logging.debug(f"Found imports: {found_imports}")
+    cleaned_imports = set()
 
-    return found_imports
+    for imp in found_imports:
+        cleaned_imports.add(imp.split(".")[0])
+
+    logging.debug(f"Found imports: {found_imports}")
+    logging.debug(f"Cleaned imports: {cleaned_imports}")
+
+    return cleaned_imports

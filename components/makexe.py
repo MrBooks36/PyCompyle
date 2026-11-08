@@ -8,9 +8,9 @@ import tempfile
 import sys
 import platform
 import stat
-from components.download import download_resourcehacker
-from components.compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx
-from components.plugins import run_end_code
+from .download import download_resourcehacker
+from .compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx
+from .plugins import run_end_code
 from logging import info, error
 
 MAX_RETRIES = 5
