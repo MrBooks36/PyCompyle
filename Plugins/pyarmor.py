@@ -122,7 +122,7 @@ def midway(folder_path):
 
 
 patches = {
-    "components.makexe.write_pth": write_pth,
-    "components.makexe.compile_main": compile_main,
-    "components.makexe.compile_and_replace_py_to_pyc": compile_and_replace_py_to_pyc,
+    "PyCompyle.components.makexe.write_pth": write_pth,
+    "PyCompyle.components.makexe.compile_main": compile_main,
+    "PyCompyle.components.makexe.compile_and_replace_py_to_pyc": compile_and_replace_py_to_pyc,
 }

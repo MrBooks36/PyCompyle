@@ -171,5 +171,5 @@ def compile_main(folder_path):
 
 
 patches = {
-    "components.makexe.compile_main": {"func": compile_main, "wrap": False}
+    "PyCompyle.components.makexe.compile_main": {"func": compile_main, "wrap": False}
 }
