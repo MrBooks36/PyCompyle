@@ -8,13 +8,23 @@ import shutil
 import subprocess
 import sys
 
-from .components import copylogic, makexe, getimports
-from .components.plugins import (
-    apply_monkey_patches,
-    load_plugin,
-    run_halfway_code,
-    run_startup_code,
-)
+
+try:
+    from .components import copylogic, makexe, getimports
+    from .components.plugins import (
+        apply_monkey_patches,
+        load_plugin,
+        run_halfway_code,
+        run_startup_code,
+    )
+except ImportError:
+    from components import copylogic, makexe, getimports
+    from components.plugins import (
+        apply_monkey_patches,
+        load_plugin,
+        run_halfway_code,
+        run_startup_code,
+    )
 
 
 def setup_logging(verbose=False):
