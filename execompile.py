@@ -1,12 +1,15 @@
 import os
 import shutil
 import subprocess
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 is_windows = os.name == "nt"
 
 
 def build_rust(build_args, out_name):
-    print("Building", out_name)
+    logging.info(f"Building {out_name}")
 
     subprocess.run(
         ["cargo", "build", "--release"] + build_args,

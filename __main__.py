@@ -11,8 +11,7 @@ import sys
 # Ensure local imports work properly when installed in site-packages
 sys.path.append(os.path.dirname(__file__))
 
-from components import copylogic, makexe  # noqa: E402
-from components.imports import importcheck  # noqa: E402
+from components import copylogic, makexe, getimports  # noqa: E402
 from components.plugins import (  # noqa: E402
     apply_monkey_patches,
     load_plugin,
@@ -44,7 +43,7 @@ def check_system():
 
 def validate_platform():
     if not check_system():
-        logging.critical("PyCompyle is designed to run only on Windows 10+ or linux on 64-bit cpus")
+        logging.critical("PyCompyle is designed to run only on Windows 10+ or linux on 64-bit CPUs")
         sys.exit(1)
 
 
@@ -88,7 +87,6 @@ def main():
                         help='Skip confirmation for wrapping the exe', default=False)
     parser.add_argument('--folder', '-f', action='store_true',
                         help='Build to a folder instead of a onefile exe', default=False)
-    parser.add_argument('--zip', '-zip', action='store_true', help='Build to a zip instead of a onefile exe.', default=False)
     parser.add_argument('--bat', '-bat', action='store_true', default=False,
                         help='Use a .bat for starting the built script for faster start times (Automatically implies --folder)')
     parser.add_argument('--icon', '-icon', help='Icon for the created EXE', default=None)
@@ -152,9 +150,8 @@ def main():
         args.verbose = True
         args.keepfiles = True
         args.folder = True
-        args.zip = False
         args.windowed = False
-    if any((args.zip, args.bat, args.disable_bootloader, args.disable_python_environment)):
+    if any((args.bat, args.disable_bootloader, args.disable_python_environment)):
         args.folder = True
 
     source_file_path = os.path.abspath(args.source_file)

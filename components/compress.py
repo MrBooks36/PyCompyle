@@ -48,7 +48,6 @@ def compress_folder_with_progress(folder_path, output_zip_path, password=None, c
                 pbar.update(os.path.getsize(file_path))
 
 
-
 def compress_top_level_pyc(lib_folder, output_name="lib_c"):
     lib_c_path = os.path.join(os.path.dirname(lib_folder), output_name)
     if os.path.exists(lib_c_path):
@@ -81,7 +80,8 @@ def compress_top_level_pyc(lib_folder, output_name="lib_c"):
             if not os.listdir(dir_path):
                 shutil.rmtree(dir_path)
 
-    compress_folder_with_progress(lib_c_path, f"{output_name}.zip", password=None, text='INFO: Compressing top-level python files')
+    compress_folder_with_progress(lib_c_path, f"{output_name}.zip", password=None,
+                                  text='INFO: Compressing top-level python files')
 
     shutil.rmtree(lib_c_path)
 

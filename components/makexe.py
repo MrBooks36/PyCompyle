@@ -250,7 +250,6 @@ def main(folder_path, args):
 
     exe_path = os.path.join(folder_path, f'{folder_name}.exe') if args.folder else f'{folder_name}.exe'
 
-
     if args.bat:
         info('Creating Batchfile...')
         bat_path = os.path.join(folder_path, f'{folder_name}.bat')
@@ -277,9 +276,6 @@ def main(folder_path, args):
 
     if args.uac:
         add_uac(exe_path, args.noconfirm)
-
-    if args.zip:
-        compress_folder_with_progress(folder_path, folder_name)
 
     end_code = run_end_code()
     if end_code:
