@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 # Ensure local imports work properly when installed in site-packages
-sys.path.append(os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(__file__))
 
 from components import copylogic, makexe, getimports  # noqa: E402
 from components.plugins import (  # noqa: E402
