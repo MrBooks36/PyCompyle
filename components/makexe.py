@@ -8,6 +8,7 @@ import tempfile
 import sys
 import platform
 import stat
+from concurrent.futures import ThreadPoolExecutor
 from .download import download_resourcehacker
 from .compress import compress_folder_with_progress, compress_top_level_pyc, compress_with_upx
 from .plugins import run_end_code
@@ -70,34 +71,54 @@ def create_executable(output_file, bootloader, no_console, zip_path=None):
         os.chmod(output_file, st.st_mode | stat.S_IXUSR)
 
 
-def compile_and_replace_py_to_pyc(folder, name="lib"):
-    directory = os.path.join(folder, name)
-    for root, _, files in os.walk(directory):
-        for file in files:
-            if file.endswith('.py'):
-                py_file_path = os.path.join(root, file)
+def _compile_pyc(file_path, temp_root, display_path):
+    with tempfile.TemporaryDirectory(dir=temp_root) as temp_dir:
+        filename = os.path.basename(file_path)
+        destination = os.path.join(temp_dir, filename)
 
-                temp_dir = r'C:\Windows\Temp' if os.name == 'nt' else '/tmp'
+        shutil.copy2(file_path, destination)
 
-                temp_dir = tempfile.mkdtemp(dir=temp_dir)
-                try:
-                    temp_file_path = os.path.join(temp_dir, file)
+        compiled_file = py_compile.compile(
+            destination,
+            cfile=os.path.join(temp_dir, filename + "c"),
+            doraise=True,
+            dfile=display_path,
+        )
 
-                    shutil.copy2(py_file_path, temp_file_path)
-                    pyc_file_path = py_file_path + 'c'
+        if compiled_file is None:
+            return
 
-                    try:
-                        display_file_path = os.path.relpath(py_file_path, directory)
-                        py_compile.compile(temp_file_path, cfile=pyc_file_path, dfile=display_file_path, doraise=True)
-                        os.remove(py_file_path)
+        shutil.move(compiled_file, f"{file_path}c")
+        os.remove(file_path)
 
-                    except py_compile.PyCompileError as compile_error:
-                        logging.error(f"Failed to compile {py_file_path}: {compile_error}")
-                    except Exception as e:
-                        error(f"An error occurred with {py_file_path}: {e}")
 
-                finally:
-                    shutil.rmtree(temp_dir)
+
+def compile_pyc(folder_path):
+    if not os.path.exists(folder_path):
+        return
+    files = [os.path.join(r, f) for r, d, files in os.walk(folder_path) for f in files if f.endswith('.py')]
+    temp_root = (
+            r"C:\Windows\Temp"
+            if os.name == "nt" and os.path.isdir(r"C:\Windows\Temp")
+            else tempfile.gettempdir()
+        )
+
+
+    with ThreadPoolExecutor() as executor:
+        futures = {
+            executor.submit(
+                _compile_pyc,
+                file_path,
+                temp_root,
+                os.path.relpath(file_path, folder_path),
+            ): file_path
+            for file_path in files
+        }
+        for future, file_path in futures.items():
+            try:
+                future.result()
+            except Exception as e:
+                logging.error(f"Failed to compile {file_path}: {e}")
 
 
 def compile_main(folder_path):
@@ -201,8 +222,8 @@ def main(folder_path, args):
 
     if not args.disable_compile:
         info("Generating byte-code")
-        compile_and_replace_py_to_pyc(folder_path)
-        compile_and_replace_py_to_pyc(folder_path, "local")
+        compile_pyc(os.path.join(folder_path, "lib"))
+        compile_pyc(os.path.join(folder_path, "local"))
         compile_main(folder_path)
 
     if not args.disable_python_environment:
@@ -286,7 +307,7 @@ def main(folder_path, args):
         shutil.rmtree(folder_path, ignore_errors=True)
         if os.path.exists(folder_path):  # this is redundant
             shutil.rmtree(folder_path)
-        if os.path.exists(zip_path):
+        if zip_path is not None and os.path.exists(zip_path):
             os.remove(zip_path)
 
     info("Done!")

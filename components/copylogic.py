@@ -49,6 +49,9 @@ def copy_python_executable(folder_path, disable_python_environment, disable_dll)
         logging.debug("Skipping copying Python executable and DLLs")
         return
     python_executable, python_dir = find_python_home()
+    if python_executable is None:
+        logging.warning("Python executable could not be found")
+        return
 
     if os.name == 'nt' and not disable_dll:
         copy_dlls_folder(folder_path, python_dir, disable_dll)
@@ -66,6 +69,10 @@ def copy_python_executable(folder_path, disable_python_environment, disable_dll)
 def copy_tk(folder_path):
     try:
         _, python_folder = find_python_home()
+        if python_folder is None:
+            logging.warning("Python installation directory could not be determined")
+            return
+
         tcl_directory = os.path.join(python_folder, 'tcl')
 
         if not os.path.exists(tcl_directory):

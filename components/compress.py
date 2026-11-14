@@ -87,7 +87,7 @@ def compress_top_level_pyc(lib_folder, output_name="lib_c"):
 
 
 def compress_with_upx(folder_path, threads, noconfirm):
-    max_workers = max(1, os.cpu_count() // 2) if threads == 'default' else threads
+    max_workers = max(1, (os.cpu_count() or 1) // 2) if threads == 'default' else threads
     if max_workers <= 0:
         return
 
@@ -96,7 +96,7 @@ def compress_with_upx(folder_path, threads, noconfirm):
     extensions = (".exe", ".dll", ".pyd", ".so", ".bin")
 
     base_cache = os.path.join(
-        os.environ.get("LOCALAPPDATA") if is_windows else os.path.expanduser("~/.cache"),
+        os.environ.get("LOCALAPPDATA", "") if is_windows else os.path.expanduser("~/.cache"),
         "PyCompyle.cache"
     )
 
@@ -193,25 +193,3 @@ def compress_with_upx(folder_path, threads, noconfirm):
                     logging.debug(f"Removed stale cache file: {name}")
         except Exception as e:
             logging.warning(f"Failed to check/remove cache file {name}: {e}")
-
-
-def compress_file_with_upx(file_path):
-    is_windows = os.name == "nt"
-    base_cache = os.path.join(
-        os.environ.get("LOCALAPPDATA") if is_windows else os.path.expanduser("~/.cache"),
-        "PyCompyle.cache"
-    )
-
-    upx_path = os.path.join(base_cache, "upx.exe" if is_windows else "upx")
-    upx_cache = os.path.join(base_cache, "upxcache")
-    os.makedirs(upx_cache, exist_ok=True)
-
-    if not os.path.exists(upx_path):
-        info("UPX not found, downloading...")
-        upx_path = install_upx()
-        if not upx_path or not os.path.exists(upx_path):
-            logging.error("Failed to install UPX. Compression will be skipped.")
-            return
-
-    if os.path.isfile(file_path):
-        subprocess.run([upx_path, "--brute", '--force', file_path], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)

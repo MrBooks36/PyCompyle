@@ -15,7 +15,7 @@ def load_plugin(plugin_path):
         plugins.append(plugin_path)
         info(f"Loaded plugin: {os.path.basename(plugin_path)}")
         return
-    base = os.path.dirname(sys.modules["__main__"].__file__)
+    base = os.path.dirname(sys.modules["__main__"].__file__)  # type: ignore
     builtin_plugin_path = os.path.join(base, "Plugins", f"{plugin_path}.py")
     if os.path.exists(builtin_plugin_path):
         plugins.append(builtin_plugin_path)
@@ -120,7 +120,7 @@ def get_special_cases():
 
 def _create_code(plugin_path, func_name):
     spec = importlib.util.spec_from_file_location("plugin_mod", plugin_path)
-    if spec is None:
+    if spec is None or spec.loader is None:
         return None
 
     mod = importlib.util.module_from_spec(spec)

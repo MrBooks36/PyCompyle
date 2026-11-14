@@ -57,8 +57,8 @@ class ImportAnalyzer(ast.NodeVisitor):
                     self.imports.add(module_name_node.value)
 
             # Backwards compatibility with older Python ASTs
-            elif hasattr(ast, "Str") and isinstance(module_name_node, ast.Str):
-                self.imports.add(module_name_node.s)
+            elif hasattr(ast, "Str") and isinstance(module_name_node, ast.Str):  # type: ignore
+                self.imports.add(module_name_node.s)  # type: ignore
 
         # Detect importlib.import_module("module")
         elif (
